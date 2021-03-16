@@ -18,35 +18,35 @@
 \noindent{\textsc{Kalman filtering in Verilog}} \\
 \noindent{
         Supervisor(s):
-        Tim Molteno,
         David Eyers
+        Tim Molteno,
 }
 
 \paragraph{Aims}
 
-The aim of this project is to create an open source Verilog core for processing (in realtime) measurements from accelerometers, gyroscopes, and magnetometers to estimate the orientation and position of an object. This will be implemented on an FPGA to make an inertial navigation unit. This will then be compared to a software implementation in Python in order to validate performance.
+The aim of this project is to create an open source Verilog core for processing (in realtime) measurements from accelerometers, gyroscopes, and magnetometers to estimate the orientation and position of an object. This will be implemented on an FPGA to make an inertial navigation unit. This will then be compared to a software implementation in Python in order to validate performance and accuracy.
 
 \paragraph{Objectives}
 
 \begin{itemize}[noitemsep]
-	\item Design a Kalman filter architecture (i.e. what registers, the format of the input and output buses, etc.);
-	\item Implement in Python and produce input/output sample graphs using recorded data for some object (to give an illustration of what the Kalman filter is doing);
-	\item Make a Verilog testbench;
-	\item Implement the Kalman filter as a Verilog module;
-	\item Implement the filter on an FPGA (possibly the Tang Nano);
+	\item Design a Kalman filter architecture (i.e.\@ what registers, the format of the input and output buses, etc.);
+	\item Implement a Kalman filter in Python and produce input/output sample graphs using recorded data for some object (to give an illustration of what the Kalman filter is doing);
+	\item Make a Verilog testbench (a module that runs some tests on another module, in this case the Kalman filter module);
+	\item Create a Kalman filter Verilog module;
+	\item Implement the Kalman filter module on an FPGA (possibly the Tang Nano);
 	\item Make an inertial navigation unit from an FPGA and an SPI IMU module;
 	\item Test and evaluate the accuracy of the inertial navigation unit;
 	\item Explore the trade-off between arithmetic precision and accuracy versus power consumption;
-	\item Validate its performance compared to the Python software implementation;
+	\item Validate its performance compared to the Python software implementation.
 \end{itemize}
 
 \paragraph{Timeline}
 \begin{itemize}[noitemsep]
 \item March: Literature review, decide on architecture;
-\item March-April: Create a Kalman filter in Python and produce the sample graphs, also make the Verilog testbench;
-\item May-June: Create Verilog module and synthesize in time for interim report;
-\item July-August: Create the inertial navigation unit (FPGA plus sensors);
-\item September-October: Test, evaluate, and compare to the Python implementation (for the final report).
+\item March -- April: Create a Kalman filter in Python and produce the sample graphs, also make the Verilog testbench;
+\item May -- June: Create the filter Verilog module and synthesize it. Write the interim report;
+\item July -- August: Create the inertial navigation unit (FPGA plus sensors);
+\item September -- October: Test, evaluate, and compare to the Python implementation. Write the final report.
 \end{itemize}
 
 \end{document}
