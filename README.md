@@ -9,7 +9,7 @@ The aim of this project is to create an open source Verilog core for processing 
 * Make a Verilog testbench
 * Implement the filter as a Verilog module
 * Implement on FPGA
-* Make ineritial navigation unit from a Tang Nano and an SPI IMU module
+* Make inertial navigation unit from a Tang Nano and an SPI IMU module
 * Test and evaluate accuracy
 * Validate its performance compared to the Python software implementation
 

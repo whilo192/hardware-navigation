@@ -1,7 +1,19 @@
-\documentclass{report}
+\documentclass[12pt]{article}
+\usepackage[draft]{cosc4x0style}
 
-\author{Louis Whitburn}
+\papercode{490}
+
 \title{Hardware Architecture for Inertial Navigation}
+
+\author{Louis \textsc{Whitburn}}
+\studentid{2548261}
+
+\supervisors{
+	Dr. Timothy \textsc{Molteno} \\
+	Dr. David \textsc{Eyers}
+}
+
+\reportdate{\today}
 
 \begin{document}
  
@@ -9,41 +21,41 @@
 
     \tableofcontents
     
-    \chapter{Introduction}
+    \section{Introduction}
     
-        \section{Problem Description}
-        \section{Inertial Measurement Units}
-        \section{Hardware Description Languages}
+        \subsection{Problem Description}
+        \subsection{Inertial Measurement Units}
+        \subsection{Hardware Description Languages}
     
-            \subsection{Icarus Verilog}
+            \subsubsection{Icarus Verilog}
     
-        \section {SPI Interface}
+        \subsection {SPI Interface}
         
-    \chapter{Sequential Inference}
+    \section{Sequential Inference}
     
-        \section{Kalman Filter}
+        \subsection{Kalman Filter}
     
-    \chapter{Materials \& Methods}
+    \section{Materials \& Methods}
     
-    \chapter{Verilog Implementation}
+    \section{Verilog Implementation}
     
-        \section {Input and Output}
+        \subsection {Input and Output}
     
-            \subsection {Bad Attitude}
+            \subsubsection {Bad Attitude}
     
-        \section {Internal Register Architecture}
+        \subsection {Internal Register Architecture}
     
-        \section{Precision}
+        \subsection{Precision}
     
-        \section{Hardware Choice}
+        \subsection{Hardware Choice}
     
-        \section{Unit Tesing}
+        \subsection{Unit Tesing}
     
-    \chapter{Results}
+    \section{Results}
     
-        \section {Performance}
+        \subsection {Performance}
     
-    \chapter{Discussuin \& Conclusion}
+    \section{Discussuin \& Conclusion}
     
-        \section{Implementation in Silicon}
+        \subsection{Implementation in Silicon}
 \end{document}
