@@ -7,38 +7,48 @@ import numpy as np
 def main():
     DT = 0.001
     
-    GN = 0.01
-    
-    #F = np.matrix([[1, DT, 0, 0, 0, 0], [0, 1, DT, 0, 0, 0], [0, 0, 1, 0, 0, 0], [0, 0, 0, 1, DT, 0], [0, 0, 0, 0, 1, DT], [0, 0, 0, 0, 0, 1]])
+    GN = 10
+      
+    #State transition matrix
     F = np.matrix([[1, DT], [0, 1]])
 
+    #Position estimation
     x = np.matrix([[0]] * 2)
     p = np.identity(2) * GN
     
+    #Covariance of the process noise
     q = np.identity(2) * GN
-    r = np.identity(2) * GN
+    
+    #Covariance of the observation noise
+    r = np.identity(1) * GN
 
-    #H = np.matrix([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1]])
-
+    #Control input model
     B = np.matrix([[0.5 * DT ** 2], [DT]])
 
-    H = np.matrix([[0, 0], [0, 1]])
+    #Observation model
+    H = np.matrix([[1, 0]])
 
     disp_x = []
+    act_x = []
+
+    x_old = 0
+    v_old = 0
 
     t_vals = [x * DT for x in range(0,10000)]
 
-    v_accum = 0
-
     for i in t_vals:
-        acc = -10 * np.cos(np.pi * i)
+        x_act = 10 * np.sin(np.pi * i)
         
-        v_accum += acc * DT
+        v_act = (x_act - x_old) / DT
+        a_act = (v_act - v_old) / DT
         
-        w = np.random.normal(0, GN, (2, 1))
-        z = np.random.normal(0, GN, (2, 1)) + [[0], [v_accum]]
+        x_old = x_act
+        v_old = v_act
         
-        x_new = F.dot(x) + acc * B + w
+        accel = a_act + float(np.random.normal(0, GN, (1, 1)))
+        z = x_act + float(np.random.normal(0, GN, (1, 1)))
+        
+        x_new = F.dot(x) + accel * B
         p_new = F.dot(p).dot(F.T)
         
         y = z - H.dot(x_new)
@@ -57,8 +67,10 @@ def main():
         p = p_new_new
 
         disp_x += [float(x[0])]
+        act_x += [x_act]
 
     plt.plot(t_vals, list(disp_x))
+    #plt.plot(t_vals, list(act_x))
     plt.show()
 
 if __name__ == "__main__":
