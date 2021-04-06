@@ -70,7 +70,7 @@ def main():
         act_x += [x_act]
 
     plt.plot(t_vals, list(disp_x))
-    #plt.plot(t_vals, list(act_x))
+    plt.plot(t_vals, list(act_x))
     plt.show()
 
 if __name__ == "__main__":
