@@ -7,7 +7,7 @@ import numpy as np
 def main():
     DT = 0.001
     
-    GN = 10
+    GN = 1
       
     #State transition matrix
     F = np.matrix([[1, DT], [0, 1]])
@@ -30,6 +30,9 @@ def main():
 
     disp_x = []
     act_x = []
+
+    disp_v = []
+    act_v = []
 
     x_old = 0
     v_old = 0
@@ -67,10 +70,26 @@ def main():
         p = p_new_new
 
         disp_x += [float(x[0])]
+        disp_v += [float(x[1])]
         act_x += [x_act]
+        act_v += [v_act]
 
-    plt.plot(t_vals, list(disp_x))
-    plt.plot(t_vals, list(act_x))
+    #plt.plot(t_vals, list(disp_x))
+    #plt.plot(t_vals, list(disp_x))
+
+    #plt.plot(t_vals, list(disp_x))
+    #plt.plot(t_vals, list(disp_v))
+    
+    tim_vals_x = []
+    tim_vals_v = []
+
+    for i in range(len(disp_x)):
+       tim_vals_x += [disp_x[i] - act_x[i]]
+       tim_vals_v += [disp_v[i] - act_v[i]]
+
+    plt.plot(t_vals, tim_vals_x)
+    plt.plot(t_vals, tim_vals_v)
+    plt.grid(True)
     plt.show()
 
 if __name__ == "__main__":
