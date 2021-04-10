@@ -7,7 +7,7 @@ import numpy as np
 def main():
     DT = 0.001
     
-    GN = 1
+    GN = 10
       
     #State transition matrix
     F = np.matrix([[1, DT], [0, 1]])
@@ -28,25 +28,33 @@ def main():
     #Observation model
     H = np.matrix([[1, 0]])
 
-    disp_x = []
-    act_x = []
+    t_vals = [x * DT for x in range(0,10000)]
 
-    disp_v = []
-    act_v = []
+    kalman_state = np.empty((len(t_vals), 2))
+    act_state = np.empty((len(t_vals), 2))
 
     x_old = 0
     v_old = 0
 
-    t_vals = [x * DT for x in range(0,10000)]
-
-    for i in t_vals:
-        x_act = 10 * np.sin(np.pi * i)
+    def gen_value(i,t):
+        nonlocal x_old
+        nonlocal v_old
+        
+        x_act = 10 * np.sin(np.pi * t)
         
         v_act = (x_act - x_old) / DT
         a_act = (v_act - v_old) / DT
         
         x_old = x_act
         v_old = v_act
+        
+        act_state[i] = np.matrix([x_act, v_act])
+        
+        return (x_act, a_act)
+
+    for (i, t) in enumerate(t_vals):
+        
+        (x_act, a_act) = gen_value(i, t)
         
         accel = a_act + float(np.random.normal(0, GN, (1, 1)))
         z = x_act + float(np.random.normal(0, GN, (1, 1)))
@@ -69,27 +77,25 @@ def main():
         x = x_new_new
         p = p_new_new
 
-        disp_x += [float(x[0])]
-        disp_v += [float(x[1])]
-        act_x += [x_act]
-        act_v += [v_act]
+        kalman_state[i] = x.T
 
-    #plt.plot(t_vals, list(disp_x))
-    #plt.plot(t_vals, list(disp_x))
+    (fig, axes) = plt.subplots(2, sharex=True)
 
-    #plt.plot(t_vals, list(disp_x))
-    #plt.plot(t_vals, list(disp_v))
+    axes[0].plot(t_vals, kalman_state[:, 0], label="Position ($m$)")
+    axes[0].plot(t_vals, kalman_state[:, 1], label="Velocity ($ms^{-1}$)")
+    axes[0].grid(True)
+    axes[0].set_title("Position and Velocity")
+    axes[0].set(ylabel = "State")
+    axes[0].legend()
     
-    tim_vals_x = []
-    tim_vals_v = []
+    err_vals = kalman_state - act_state
 
-    for i in range(len(disp_x)):
-       tim_vals_x += [disp_x[i] - act_x[i]]
-       tim_vals_v += [disp_v[i] - act_v[i]]
-
-    plt.plot(t_vals, tim_vals_x)
-    plt.plot(t_vals, tim_vals_v)
-    plt.grid(True)
+    axes[1].plot(t_vals, err_vals[:, 0])
+    axes[1].plot(t_vals, err_vals[:, 1])
+    axes[1].grid(True)
+    axes[1].set_title("Absolute Error of Position and Velocity")
+    axes[1].set(xlabel = "Time (s)", ylabel = "Absolute Error")
+    
     plt.show()
 
 if __name__ == "__main__":
