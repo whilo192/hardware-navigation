@@ -17,7 +17,7 @@ B = np.matrix([[0, DT, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0,
 
 H = np.matrix([[0, 1, 0, 0, 1, 0, 0, 1]])
 
-GN = 0.01
+GN = 0.0001
 
 p = np.identity(8) * GN
 q = np.identity(8) * GN
@@ -33,18 +33,18 @@ A = 2
 
 THETA_DOT_INIT = 1
 
-x = np.matrix([[0], [THETA_DOT_INIT], [0], [0], [0], [0], [0], [0]])
+x = np.matrix([[0], [THETA_DOT_INIT], [0], [1], [0], [0], [0], [0]])
 
 def gen_value(i,t):
     theta_dot_dot = 0
     theta_dot = THETA_DOT_INIT
     theta = theta_dot * t
 
-    r_dot_dot = -R * (theta_dot) ** 2
-    phi_dot_dot = R * theta_dot_dot
+    r_dot_dot = -R * (theta_dot) ** 2 + np.cos(theta)
+    phi_dot_dot = R * theta_dot_dot + np.cos(theta + np.pi / 2)
     
 
-    act_state[i] = np.matrix([theta, theta_dot, 0, 0, r_dot_dot, 0, 0, phi_dot_dot])
+    act_state[i] = np.matrix([theta, theta_dot, 0.5 * t ** 2, t, 1, 0, 0, 0])
 
     return (theta, theta_dot, r_dot_dot, phi_dot_dot)
     
@@ -93,7 +93,7 @@ axes[0].plot(t_vals, kalman_state[:, 0], label="$\phi$ ($rad$)")
 axes[0].plot(t_vals, kalman_state[:, 2], label="$x$ (m)")
 axes[0].plot(t_vals, kalman_state[:, 5], label="$y$ (m)")
 axes[0].grid(True)
-axes[0].set_title("Estimated $\phi$, $x$, and $y$$")
+axes[0].set_title("Estimated $\phi$, $x$, and $y$")
 axes[0].set(ylabel = "Estimated State")
 axes[0].legend()
 
@@ -101,7 +101,7 @@ axes[1].plot(t_vals, act_state[:, 0])
 axes[1].plot(t_vals, act_state[:, 2])
 axes[1].plot(t_vals, act_state[:, 5])
 axes[1].grid(True)
-axes[0].set_title("Estimated $\phi$, $x$, and $y$$")
+axes[1].set_title("Actual $\phi$, $x$, and $y$")
 axes[1].set(ylabel = "Actual State")
 
 err_vals = np.abs(kalman_state - act_state)
@@ -110,14 +110,14 @@ axes[2].plot(t_vals, err_vals[:, 0])
 axes[2].plot(t_vals, err_vals[:, 2])
 axes[2].plot(t_vals, err_vals[:, 5])
 axes[2].grid(True)
-axes[0].set_title("Estimated $\phi$, $x$, and $y$$")
+axes[2].set_title("Absolute Error of $\phi$, $x$, and $y$")
 axes[2].set(ylabel = "Absolute Error")
 
 axes[3].semilogy(t_vals, cov_state[:, 0])
 axes[3].semilogy(t_vals, cov_state[:, 2])
 axes[3].semilogy(t_vals, cov_state[:, 5])
 axes[3].grid(True)
-axes[0].set_title("Estimated $\phi$, $x$, and $y$$")
+axes[3].set_title("Covariance of $\phi$, $x$, and $y$")
 axes[3].set(xlabel = "Time (s)", ylabel = "Covariance")
 
 plt.show()
