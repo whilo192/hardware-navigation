@@ -16,67 +16,75 @@ t_vals = [x * DT for x in range(0,1000)]
 #u_k is gyro, B, and g
 B = np.matrix([[0, 0, 0, DT, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, DT, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, DT, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
-GN = 0.005
 
-p = np.identity(12) * GN
+time_range = list(np.arange(0.005, 0.1, 0.005))
 
-kalman_state = np.empty((len(t_vals), 12))
-act_state = np.empty((len(t_vals), 12))
+rms = np.empty((len(time_range), 1))
 
-cov_state = np.empty((len(t_vals), 12))
+for (j, GN) in enumerate(time_range):
+    p = np.identity(12) * GN
 
-x = np.empty((12, 1))
+    kalman_state = np.empty((len(t_vals), 12))
+    act_state = np.empty((len(t_vals), 12))
 
-def gen_value(i, t):
-    actual = np.matrix([[t], [t], [t], [1], [1], [1], [0], [0], [0], [0], [0], [0]])
-    
-    act_state[i] = actual.T
-    
-    return actual
+    cov_state = np.empty((len(t_vals), 12))
 
-for (i, t) in enumerate(t_vals):
-    actual = gen_value(i, t)
-    
-    H = np.zeros((12, 12))
-    H[0,3] = DT
-    H[1,4] = DT
-    H[2,5] = DT
-    
-    u = actual + np.random.normal(0, GN, (12, 1))
-    u[0] = 0
-    u[1] = 0
-    u[2] = 0
-    
-    z = H @ actual
-      
-    r = np.random.normal(0, GN, (12, 12))
-    q = np.random.normal(0, GN, (12, 1))
-    
-      
-    x_new = F @ x + B @ u + np.random.normal(0, GN, (12, 1))
-    p_new = F @ p @ F.T + q
-      
-    y = z - H @ x_new
-    
-    s = H @ p_new @ H.T + r
+    x = np.empty((12, 1))
+
+    OMEGA = 10
+
+    def gen_value(i, t):
+        actual = np.matrix([[np.sin(OMEGA * t)], [np.cos(OMEGA * t) - 1], [np.sin(OMEGA * t)], [OMEGA * np.cos(OMEGA * t)], [-OMEGA * np.sin(OMEGA * t)], [OMEGA * np.cos(OMEGA * t)], [0], [0], [0], [0], [0], [0]])
         
-    k = p_new @ H.T @ s.I
-    
-    x_new_new = x_new + k @ y
-    
-    p_new_new = (np.identity(12) - k @ H) @ p_new
+        act_state[i] = actual.T
         
-    y_new = z - H @ x_new_new
+        return actual
 
-    x = x_new_new
-    p = p_new_new
+    for (i, t) in enumerate(t_vals):
+        actual = gen_value(i, t)
+        
+        H = np.zeros((12, 12))
+        H[0,3] = DT
+        H[1,4] = DT
+        H[2,5] = DT
+        
+        u = actual + np.random.normal(0, GN, (12, 1))
+        u[0] = 0
+        u[1] = 0
+        u[2] = 0
+        
+        z = H @ actual
+        
+        r = np.random.normal(0, GN, (12, 12))
+        q = np.random.normal(0, GN, (12, 1))
+        
+        
+        x_new = F @ x + B @ u + np.random.normal(0, GN, (12, 1))
+        p_new = F @ p @ F.T + q
+        
+        y = z - H @ x_new
+        
+        s = H @ p_new @ H.T + r
+            
+        k = p_new @ H.T @ s.I
+        
+        x_new_new = x_new + k @ y
+        
+        p_new_new = (np.identity(12) - k @ H) @ p_new
+            
+        y_new = z - H @ x_new_new
+
+        x = x_new_new
+        p = p_new_new
+        
+        kalman_state[i] = x.T
+        cov_state[i] = [p[x,x] for x in range(len(F[0]))]
+                     
+    err_vals = np.abs(kalman_state - act_state)
     
-    kalman_state[i] = x.T
-    cov_state[i] = [p[x,x] for x in range(len(F[0]))]
-    
+    rms[j] = np.sqrt(np.mean(err_vals ** 2))
+                     
 (fig, axes) = plt.subplots(4, sharex=True, figsize=(15, 10))
-
-err_vals = np.abs(kalman_state - act_state)
 
 axes[0].plot(t_vals, kalman_state[:, 0], label=r"$\theta_x$ ($rad$)")
 axes[0].plot(t_vals, kalman_state[:, 1], label=r"$\theta_y$ ($rad$)")
@@ -106,5 +114,15 @@ axes[3].semilogy(t_vals, cov_state[:, 2])
 axes[3].grid(True)
 axes[3].set_title(r"Covariance of $\theta$")
 axes[3].set(xlabel = "Time (s)", ylabel = "Covariance")
+
+plt.show()
+
+(fig, axes) = plt.subplots(1, sharex=True, figsize=(15, 10))
+axes.plot(time_range, rms, label=r"RMS of Error")
+axes.grid(True)
+axes.set_title("RMS of Error over Estimated Measurement and State Transition Noise")
+axes.set(ylabel = "RMS of Error")
+axes.set(xlabel = "Estimated Noise")
+axes.legend()
 
 plt.show()
