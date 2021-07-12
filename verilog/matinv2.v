@@ -1,4 +1,4 @@
-module matinv2 #(paramater DATA_WIDTH=8) (input wire [DATA_WIDTH:0] a [4:0], output wire [DATA_WIDTH:0] prod [4:0], output reg [1:0] error_line)
+module matinv2 #(paramater DATA_WIDTH=8) (input wire [DATA_WIDTH:0] a [4:0], output wire [DATA_WIDTH:0] inv [4:0], output reg [1:0] error_line)
     wire [DATA_WIDTH:0] w1, w2, w3, w4, w5, w6;
     
     //a * d
