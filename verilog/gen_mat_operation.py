@@ -9,6 +9,9 @@ def generate_mat_det(dir, n):
     if n <= 2:
         if n == 2:
             shutil.copyfile("matdet2.v", dir + "/matdet2.v")
+            shutil.copyfile("add.v", dir + "/add.v")
+            shutil.copyfile("sub.v", dir + "/sub.v")
+            shutil.copyfile("mul.v", dir + "/mul.v")
         return
     
     generate_mat_det(dir, n-1)
@@ -17,9 +20,9 @@ def generate_mat_det(dir, n):
     n_minus_1 = n - 1
     
     with open(dir + rf"/matdet{n}.v", 'w') as out_file:
-        out_file.write(rf"module matdet{n} #(paramater DATA_WIDTH={DATA_WIDTH}) (input wire [DATA_WIDTH:0] a [{n2}:0], output wire [DATA_WIDTH:0] det)" + "\n")
+        out_file.write(rf"module matdet{n} #(parameter DATA_WIDTH={DATA_WIDTH}, parameter MATRIX_SIZE={n2}) (input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [DATA_WIDTH-1:0] det);" + "\n")
         
-        out_file.write(r"wire [DATA_WIDTH:0] " + ", ".join([rf"w{x}" for x in range(n * 3 - 1)]) + ";" + "\n")
+        out_file.write(r"wire [DATA_WIDTH-1:0] " + ", ".join([rf"w{x}" for x in range(n * 3 - 1)]) + ";" + "\n")
             
         for i in range(n): #Column i
             elements = "{"
@@ -29,14 +32,21 @@ def generate_mat_det(dir, n):
             for j in range(len(non_column_nums)): #row
                 for k in non_column_nums: #column
                     index = (j + 1) * n + k
-                    elements += rf"a[{index}], "
+                    
+                    min_bit = DATA_WIDTH * index
+                    max_bit = min_bit + (DATA_WIDTH - 1)
+                    elements += rf"a[{max_bit}:{min_bit}], "
                     
             elements = elements[:-2] + "}"
-            out_file.write(rf"matdet{n_minus_1}({elements}, w{i});" + "\n")
+            out_file.write(rf"matdet{n_minus_1} md{i}({elements}, w{i});" + "\n")
 
         for i in range(n):
             i_plus_n = i + n
-            out_file.write(rf"mul(a[{i}], w{i}, w{i_plus_n});" + "\n")
+            
+            min_bit = DATA_WIDTH * i
+            max_bit = min_bit + (DATA_WIDTH - 1)
+            
+            out_file.write(rf"mul m{i}(a[{max_bit}:{min_bit}], w{i}, w{i_plus_n});" + "\n")
 
         for i in range(n-1):
             i_plus_n = i + n
@@ -47,11 +57,11 @@ def generate_mat_det(dir, n):
             op_str = "sub" if i % 2 == 0 else "add"
             
             if i == 0:
-                out_file.write(rf"{op_str}(w{i_plus_n}, w{i_plus_n_plus_one}, w{i_plus_two_n});" + "\n")
+                out_file.write(rf"{op_str} op{i}(w{i_plus_n}, w{i_plus_n_plus_one}, w{i_plus_two_n});" + "\n")
             elif i == n - 2:
-                out_file.write(rf"{op_str}(w{i_plus_two_bracket_n_minus_1_bracket_plus_1}, w{i_plus_n_plus_one}, det);" + "\n")
+                out_file.write(rf"{op_str} op{i}(w{i_plus_two_bracket_n_minus_1_bracket_plus_1}, w{i_plus_n_plus_one}, det);" + "\n")
             else:
-                out_file.write(rf"{op_str}(w{i_plus_two_bracket_n_minus_1_bracket_plus_1}, w{i_plus_n_plus_one}, w{i_plus_two_n});" + "\n")
+                out_file.write(rf"{op_str} op{i}(w{i_plus_two_bracket_n_minus_1_bracket_plus_1}, w{i_plus_n_plus_one}, w{i_plus_two_n});" + "\n")
                 
 
         out_file.write(r"endmodule" + "\n")
@@ -62,4 +72,4 @@ def main(dir, depth):
     generate_mat_det(dir, depth)
     
 if __name__ == "__main__":
-    main("src", 4)
+    main("src", 12)
