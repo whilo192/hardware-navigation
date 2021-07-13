@@ -5,7 +5,13 @@ import shutil
 
 DATA_WIDTH = 8
 
+mul_count = 0
+add_sub_count = 0
+
 def generate_mat_det(dir, n):
+    global mul_count
+    global add_sub_count
+    
     if n <= 2:
         if n == 2:
             shutil.copyfile("matdet2.v", dir + "/matdet2.v")
@@ -47,6 +53,7 @@ def generate_mat_det(dir, n):
             max_bit = min_bit + (DATA_WIDTH - 1)
             
             out_file.write(rf"mul m{i}(a[{max_bit}:{min_bit}], w{i}, w{i_plus_n});" + "\n")
+            mul_count += n ** 2
 
         for i in range(n-1):
             i_plus_n = i + n
@@ -55,6 +62,8 @@ def generate_mat_det(dir, n):
             i_plus_two_bracket_n_minus_1_bracket_plus_1 = i + 2 * (n - 1) + 1
             
             op_str = "sub" if i % 2 == 0 else "add"
+            
+            add_sub_count += n ** 2
             
             if i == 0:
                 out_file.write(rf"{op_str} op{i}(w{i_plus_n}, w{i_plus_n_plus_one}, w{i_plus_two_n});" + "\n")
@@ -67,9 +76,15 @@ def generate_mat_det(dir, n):
         out_file.write(r"endmodule" + "\n")
 
 def main(dir, depth):
+    global mul_count
+    global add_sub_count
+    
     os.makedirs(dir, exist_ok=True)
     
     generate_mat_det(dir, depth)
+    
+    print("Multiplier count:", mul_count)
+    print("Adder / subtractor count:", add_sub_count)
     
 if __name__ == "__main__":
     main("src", 12)
