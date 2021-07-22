@@ -107,14 +107,14 @@ for (j, GN) in enumerate(noise_range):
 LINEWIDTH = 4
 FONTSIZE = "xx-large"
          
-(fig, axes) = plt.subplots(4, sharex=True, figsize=(15, 10))
+(fig, axes) = plt.subplots(4, sharex=True, figsize=(10, 15))
 
 axes[0].plot(t_vals, kalman_state[:, 0], label=r"$\theta_x$ ($rad$)", linewidth=LINEWIDTH)
 axes[0].plot(t_vals, kalman_state[:, 1], label=r"$\theta_y$ ($rad$)", linewidth=LINEWIDTH)
 axes[0].plot(t_vals, kalman_state[:, 2], label=r"$\theta_z$ ($rad$)", linewidth=LINEWIDTH)
 axes[0].grid(True)
 axes[0].set_title("Estimated Orientation", fontsize=FONTSIZE)
-axes[0].set_ylabel("Orientation", fontsize=FONTSIZE)
+axes[0].set_ylabel("Orientation ($rad$)", fontsize=FONTSIZE)
 axes[0].legend(fontsize=FONTSIZE)
 
 axes[1].plot(t_vals, act_state[:, 0], linewidth=LINEWIDTH)
@@ -122,14 +122,14 @@ axes[1].plot(t_vals, act_state[:, 1], linewidth=LINEWIDTH)
 axes[1].plot(t_vals, act_state[:, 2], linewidth=LINEWIDTH)
 axes[1].grid(True)
 axes[1].set_title(r"Actual Orientation", fontsize=FONTSIZE)
-axes[1].set_ylabel("Orientation", fontsize=FONTSIZE)
+axes[1].set_ylabel("Orientation ($rad$)", fontsize=FONTSIZE)
 
 axes[2].plot(t_vals, err_vals[:, 0], linewidth=LINEWIDTH)
 axes[2].plot(t_vals, err_vals[:, 1], linewidth=LINEWIDTH)
 axes[2].plot(t_vals, err_vals[:, 2], linewidth=LINEWIDTH)
 axes[2].grid(True)
 axes[2].set_title(r"Absolute Error of Orientation", fontsize=FONTSIZE)
-axes[2].set_ylabel("Error", fontsize=FONTSIZE)
+axes[2].set_ylabel("Error ($rad$)", fontsize=FONTSIZE)
 
 axes[3].semilogy(t_vals, cov_state[:, 0], linewidth=LINEWIDTH)
 axes[3].semilogy(t_vals, cov_state[:, 1], linewidth=LINEWIDTH)
@@ -137,16 +137,19 @@ axes[3].semilogy(t_vals, cov_state[:, 2], linewidth=LINEWIDTH)
 axes[3].grid(True)
 axes[3].set_title(r"Covariance of the Estimate of Orientation", fontsize=FONTSIZE)
 axes[3].set_xlabel("Time (s)", fontsize=FONTSIZE)
-axes[3].set_ylabel("Covariance", fontsize=FONTSIZE)
+axes[3].set_ylabel("Covariance ($rad^2$)", fontsize=FONTSIZE)
 
 plt.show()
 
-(fig, axes) = plt.subplots(1, sharex=True, figsize=(15, 10))
-axes.plot(noise_range, rms, label=r"RMS of Error", linewidth=LINEWIDTH)
+(fig, axes) = plt.subplots(1, sharex=True, figsize=(8, 5))
+axes.plot(noise_range, rms, label=r"RMS of Error ($rad$)", linewidth=LINEWIDTH)
 axes.grid(True)
 axes.set_title("RMS of Error vs. Estimated Noise", fontsize=FONTSIZE)
-axes.set_ylabel("RMS of Error", fontsize=FONTSIZE)
+axes.set_ylabel("RMS of Error ($rad$)", fontsize=FONTSIZE)
 axes.set_xlabel("Estimated Noise", fontsize=FONTSIZE)
 #axes.legend()
+
+print(noise_range)
+print(rms)
 
 plt.show()
