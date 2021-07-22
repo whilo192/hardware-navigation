@@ -24,6 +24,10 @@
 
 \usepackage{xcolor}
 
+% Encoding goodness that I usually expect to rely on...
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
@@ -50,6 +54,12 @@
 
 \addbibresource{bibliography.bib}
 
+% The sorts of macros that I (Dave) normally use when working with LaTeX
+\newcommand{\note}[2][red]{\textcolor{#1}{#2}}
+\newcommand{\notedme}[1]{\note[blue]{[<Dave> #1]}}
+\newenvironment{scaffold}{\color{red}}{}
+\newcommand{\change}[2][]{\textcolor{orange}{#2}}
+
 % To compile the final version of the report (which will remove all the todo content)
 %\usepackage{cosc4x0style}
 
@@ -65,8 +75,8 @@
 
 % Names of your supervisors, separated by line break '\\'
 \supervisors{
-  Dr. Tim \textsc{Molteno} \\
-  Dr. David \textsc{Eyers}
+  Dr.\@ Tim \textsc{Molteno} \\
+  Dr.\@ David \textsc{Eyers}
 }
 
 % Date, change the \today to a set date if you want to be precise
@@ -79,7 +89,8 @@
 
 \begin{abstract}
 
-With the surge in growth of the UAV and smartphone industry, there continues to be significant demand for accurate and low power methods to measure and estimate orientation. The simplest method of estimating a device's orientation is by comparing the device's orientation to gravity, i.e.\@ by using accelerometers. This method is very easy to implement, however becomes very inaccurate when the device is actually accelerating. The solution to this is to combine multiple sensors (via a process called sensor fusion), such as gyroscope measurements and magnetometer data. One of the most well known methods of achieving this is through the Kalman filter, however this requires some fairly computationally expensive matrix mathematics, which limits potential performance, and results in greater than necessary power drain. My project explores the implementation of this in hardware, and the tradeoffs between hardware resource consumption and performance. In particular, hardware has significant flexibility in representation of numerical quantities and choices of representation affect the accuracy of the inferred orientation.
+With the surge in growth of the UAV and smartphone industry, there continues to be significant demand for accurate and low power methods to measure and estimate orientation. The simplest method of estimating a device's orientation is by comparing the device's orientation to gravity, i.e.\@ by using accelerometers. This method is very easy to implement, however becomes very inaccurate when the device is actually accelerating. The solution to this is to combine multiple sensors (via a process called sensor fusion), such as gyroscope measurements and magnetometer data. One of the most well known methods of achieving this\notedme{too many `this's---you've used one in each of the preceding three sentences. Sometimes, it will be clearer to repeat an explicit noun. There's also the risk of ambiguity as to what `this' is referring to in each instance.} is through the Kalman filter, however this requires some fairly computationally expensive matrix mathematics, which limits potential performance, and results in greater than necessary power drain. My project explores the implementation of this in hardware, and the tradeoffs between hardware resource consumption and performance. In particular, hardware has significant flexibility in representation of numerical quantities, and choices of representation affect the accuracy of the inferred orientation.
+\notedme{Good, but you don't seem to be answering Brendan's question from the talks---and he could well be one of the academics reading this report.}
 
 \section{Introduction}
 
