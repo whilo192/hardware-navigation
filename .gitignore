@@ -5,3 +5,9 @@
 *.synctex.gz
 *.toc
 *.ipynb_checkpoints
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.run.xml
