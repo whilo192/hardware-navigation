@@ -231,7 +231,7 @@ The first phase of the project was getting a simple Kalman filter working. This 
 	\label{1d_position_fig}
 \end{figure}
 
-The next system was the same as before except the velocity was measured, and the position determined by integrating---i.e.\@ by adding the velocity multiplied by the time step to the position. In this scenario, the velocity is cyclical, with a slight increase over time. As we can see in figure \ref{1d_velocity_fig}, the model continues to perform well, with minimal error that appears to be bounded.
+The next system was the same as before except the velocity was measured, and the position determined by integrating---i.e.\@ by adding the velocity multiplied by the time step to the position. In this scenario, the velocity is cyclical, with a slight increase over time. As we can see in figure \ref{1d_velocity_fig}, the model continues to perform well, with minimal error, that appears to be bounded.
 
 \begin{figure}[thp]
 	\centering
@@ -249,14 +249,15 @@ The final scenario is that of a three-dimensional body rocking backwards and for
 	
 	\includegraphics[width=\textwidth]{3d-orientation.pdf}
 	
-	\caption{A decent estimate of the orientation given noisy data. The covariance grows slowly.}
+	\caption{A decent estimate of the orientation given noisy data. The covariance grows slowly.\notedme{Check for consistency regarding style for full-stops on captions: I think you might be putting full-stops for multi-sentence captions (fine if so!), but there's a chance that this inconsistency was accidental.}}
 	\label{3d_orient_fig}
 \end{figure}
 
 From this we can also demonstrate how sensor and model noise affect the accuracy of the orientation estimate. For a discrete data set, the root-mean-square is defined as the square of the average of those values squared, i.e.
 
+\newcommand{\RMS}{\ensuremath{\mathit{RMS}}} % <dme> oh, oops - you use RMS once in maths. The command is a bit of overkill then!! :-) Still, the mathit fixes the inter-letter spacing.
 \begin{equation}
-	x_{RMS} = \sqrt{{1 \over n}(x_1^2 + x_2^2 + \dots + x_n^2)}
+	x_\RMS = \sqrt{{1 \over n}(x_1^2 + x_2^2 + \dots + x_n^2)}
 \end{equation}
 
 If we run multiple iterations of the three dimensional scenario, altering the amount of noise added the the measurements and system each time, we can calculate the RMS of the error values and plot that against that noise figure, as shown in figure \ref{3d_rms_fig}.
@@ -284,11 +285,13 @@ Here we see linear growth (with some noise)---as we make the simulated sensors m
 
 \subsection{Verilog Implementation}
 
-As we have seen in \ref{recursion_space}, the amount of Verilog code required to perform a simple operation is quite vast. The $4\times4$ code I show could be written by hand fairly easily, however this would not be possible for the $12 \times 12$ matrix required for three dimensions each of orientation, acceleration, angular velocity, and the magnetic field vector---even a 9x9 version took up 40 slides in a beamer.
+As we have seen in \ref{recursion_space}, the amount of Verilog code required to perform a simple operation is quite vast. 
+\notedme{`simple operation' here is too underspecified: for some simple operations, the Verilog won't be that bad.}
+The $4\times4$ code I show could be written by hand fairly easily, however this would not be possible for the $12 \times 12$ matrix required for three dimensions each of orientation, acceleration, angular velocity, and the magnetic field vector---even a $9 \times 9$ version took up 40 slides in a beamer.
 
 The solution is to automatically generate the Verilog code in software---this is the approach I used for the code in \ref{recursion_space}. This is not a trivial task but it is significantly easier to write a few hundred lines of Python than 20 KiB of Verilog.
 
-So far, I have a reliable tool to generate the Verilog for calculating the determinant of arbitrarily sized matrices (with the maximum size specified when the Verilog is generated). I have also created a testbench module to confirm that it is, in fact, reliable.
+So far, I have a reliable tool to generate the Verilog for calculating the determinant of arbitrarily sized matrices (with the maximum size specified when the Verilog is generated). I have also created a testbench module to confirm that it is, in fact, reliable. \notedme{Ideally include the output from that here, or markers may not be sure of the degree to which to give you credit for the claimed work done.}
 
 \section{Future Work}
 
@@ -301,7 +304,7 @@ Certain specific tasks include:
 	\item Adding matrix multiplication, inversion and transpose modules, and writing a Python ``compiler'' to compile a given mathematical equation to Verilog---this would take about two weeks, and would mostly require adapting the existing determinant code to the other operations, as well as developing the ``compiler'' to generate a ``glue'' module which would connect all the operations together.
 	\item Reduce the amount of multipliers used, i.e.\@ by pipelining some of the common operations \cite{wang_2016}---this would take about two weeks, and would involve a rewrite of how multipliers are allocated to the matrix operation modules.
 	\item Add the sensor interface Verilog code---this would take less than one week, and would involve creating a SPI or I2C module, which would be fairly straightforward.
-	\item Verifying that it operates correctly, by comparing it to the Python implementation---this would take less than one week, and would mainly involve adding some method to log data from the FPGA to a computer, e.g.\@ via a UART module.
+	\item Verifying that it \notedme{de-it it} operates correctly, by comparing it to the Python implementation---this would take less than one week, and would mainly involve adding some method to log data from the FPGA to a computer, e.g.\@ via a UART module.
 	\item Comparing the performance when preferring more precise sensor readings versus more frequent sensor readings---this would take about one week, and would be fairly straightforward, e.g.\@ changing clock frequencies and data bus widths.
 \end{itemize}
 
