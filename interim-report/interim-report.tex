@@ -101,11 +101,12 @@ The primary motivation behind this is reduced power consumption, although there 
 
 \section{Background}
 
-Before moving on, I would like to introduce the Kalman filter and Hardware Description languages. I would also like to comment on the typical differences between software and hardware solutions to problems.
+Before moving on \notedme{Unnecessary text to the left?}, I would like to introduce the Kalman filter and Hardware Description languages. I would also like to comment on the typical differences between software and hardware solutions to problems.
+\notedme{Say why you're doing so, not necessarily just \emph{that} you're doing so?}
 
 \subsection{Inertial Measurement Units}
 
-An inertial measurement unit is a device which reports the acceleration, and angular velocity of an object, typically by using accelerometers and gyroscopes. When combined with post processing they can also report on the device's orientation. One method for integrating multiple sources and updating the understanding of the system is through sequential inference.
+An inertial measurement unit is a device which reports the acceleration, and angular velocity of an object, typically by using accelerometers and gyroscopes. When combined with post-processing they can also report on the device's orientation. One method for integrating multiple sources and updating the understanding of the system is through sequential inference.
 
 \subsection{Sequential Inference}
 
@@ -132,23 +133,24 @@ The significance of being based off of Bayes's Theorem is that it means that equ
 
 \subsubsection{Kalman Filter}
 
-The Kalman filter \cite{kalman_1960} is the ``go to'' algorithm for estimating the state (e.g.\@ orientation) of a system from multiple noisy sensors. It works by using a model of the system to predict the future state of that system, and then (after some time step), comparing that predicted state to the measured state.
+The Kalman filter \cite{kalman_1960} is the ``go to'' algorithm \notedme{Not sure `go to' is formal or precise enough? Maybe it is...} for estimating the state (e.g.\@ orientation) of a system from multiple noisy sensors. It works by using a model of the system to predict the future state of that system, and then (after some time step), comparing that predicted state to the measured state.
 
 The first two steps are to predict how the system will evolve:
 \begin{eqnarray}
-	\mathbf{\hat{x}}_{k | k-1} = \mathbf{F}_k \mathbf{\hat{x}}_{k-1|k-1} + \mathbf{B}_k \mathbf{u}_k \\
-	\mathbf{P}_{k|k-1} = \mathbf{F}_k \mathbf{P}_{k-1 | k-1} \mathbf{F}^T_k + \mathbf{Q}_k
+	\mathbf{\hat{x}}_{k | k-1} &=& \mathbf{F}_k \mathbf{\hat{x}}_{k-1|k-1} + \mathbf{B}_k \mathbf{u}_k \\
+	\mathbf{P}_{k|k-1} &=& \mathbf{F}_k \mathbf{P}_{k-1 | k-1} \mathbf{F}^T_k + \mathbf{Q}_k
 \end{eqnarray}
 
-\noindent Here, $\mathbf{\hat{x}}_{k | k-1}$ and $\mathbf{P}_{k|k-1}$ are the \emph{a priori} (i.e.\@ without including any additional knowledge---the only knowledge we have are from the previous state---the $k-1|k-1$ subscripts) estimates of the state, and the covariance of the state. $\mathbf{F}_k$ is the state transition matrix, i.e.\@ it determines how the state changes through time. $\mathbf{B}_k$ is the control-input matrix applied to the control vector $\mathbf{u}_k$---these model any external input to the system, i.e.\@ if it was forced in a direction. Finally, $\mathbf{Q}_k$ is the covariance of the process noise, i.e.\@ the error / uncertainty that arises from the model. This uncertainty mainly arises from approximations made in the model (e.g.\@ linearisation), and from integration error (e.g.\@ if the measurement is velocity, then the estimate of position will drift if not corrected).
+Here, $\mathbf{\hat{x}}_{k | k-1}$ and $\mathbf{P}_{k|k-1}$ are the \emph{a priori} (i.e.\@ without including any additional knowledge---the only knowledge we have are from the previous state---the $k-1|k-1$ subscripts) estimates of the state, and the covariance of the state. $\mathbf{F}_k$ is the state transition matrix, i.e.\@ it determines how the state changes through time. $\mathbf{B}_k$ is the control-input matrix applied to the control vector $\mathbf{u}_k$---these model any external input to the system, i.e.\@ if it was forced in a direction. Finally, $\mathbf{Q}_k$ is the covariance of the process noise, i.e.\@ the error / uncertainty that arises from the model. This uncertainty mainly arises from approximations made in the model (e.g.\@ linearisation), and from integration error (e.g.\@ if the measurement is velocity, then the estimate of position will drift if not corrected).
 
 The next step is the update step. It first consists of the innovation stage---determining the difference between the predicted / forecast state and the observed state
 \begin{eqnarray}
-	\mathbf{\tilde{y}}_k = \mathbf{z}_k - \mathbf{H}_k \mathbf{\hat{x}}_{k|k-1} \\
-	\mathbf{S}_k = \mathbf{H}_k \mathbf{P}_{k|k-1} \mathbf{H}^T_k + \mathbf{R}_k
+	\mathbf{\tilde{y}}_k &=& \mathbf{z}_k - \mathbf{H}_k \mathbf{\hat{x}}_{k|k-1} \\
+	\mathbf{S}_k &=& \mathbf{H}_k \mathbf{P}_{k|k-1} \mathbf{H}^T_k + \mathbf{R}_k
 \end{eqnarray}
 
-\noindent Here $\mathbf{\tilde{y}}_k$ is that difference (residual), where $\mathbf{z}_k$ is the measured state and $\mathbf{\hat{x}}_{k|k-1}$ is the a priori estimate from before. $\mathbf{H}_k$ is the observation model, which maps the state space into the observation space---e.g.\@ when measuring depth via sonar the state space contains the depth, whereas the observation state contains the sonar round trip time. The observation model converts this (predicted) state into a (predicted) observation, in this case by dividing the distance by half the speed of sound in water. $\mathbf{S}_k$ is the residual of the covariance, where $\mathbf{R}_k$ is the covariance of the process noise, in the above example, this could arise from noisy sensors, and water currents and temperature differences slightly affecting the speed of sound in the water.
+\notedme{Just noting that AFAIK you don't need to use noindent if you \emph{are} actually starting a new paragraph---just explaining why I'm taking some of them out.}
+Here $\mathbf{\tilde{y}}_k$ is that difference (residual), where $\mathbf{z}_k$ is the measured state and $\mathbf{\hat{x}}_{k|k-1}$ is the a priori estimate from before. $\mathbf{H}_k$ is the observation model, which maps the state space into the observation space---e.g.\@ when measuring depth via sonar the state space contains the depth, whereas the observation state contains the sonar round trip time. The observation model converts this (predicted) state into a (predicted) observation, in this case by dividing the distance by half the speed of sound in water. $\mathbf{S}_k$ is the residual of the covariance, where $\mathbf{R}_k$ is the covariance of the process noise, in the above example, this could arise from noisy sensors, and water currents and temperature differences slightly affecting the speed of sound in the water.
 
 The second part of the update step is determining the Kalman gain:
 \begin{eqnarray}
@@ -159,11 +161,12 @@ The second part of the update step is determining the Kalman gain:
 
 The final part is generating these \emph{a posteriori} estimates
 \begin{eqnarray}
-	\mathbf{\hat{x}}_{k|k} = \mathbf{\hat{x}}_{k|k-1} + \mathbf{K}_k \mathbf{\tilde{y}}_k \\
-	\mathbf{P}_{k|k} = (\mathbf{I} - \mathbf{K}_k \mathbf{H}_k)\mathbf{P}_{k|k-1}
+	\mathbf{\hat{x}}_{k|k} &=& \mathbf{\hat{x}}_{k|k-1} + \mathbf{K}_k \mathbf{\tilde{y}}_k \\
+	\mathbf{P}_{k|k} &=& (\mathbf{I} - \mathbf{K}_k \mathbf{H}_k)\mathbf{P}_{k|k-1}
 \end{eqnarray}
 
-\noindent Where $\mathbf{\hat{x}}_{k|k}$ and $\mathbf{P}_{k|k}$ are the \emph{a posteriori} state estimate and state estimate covariance.
+\noindent where $\mathbf{\hat{x}}_{k|k}$ and $\mathbf{P}_{k|k}$ are the \emph{a posteriori} state estimate and state estimate covariance.
+\notedme{(...but when continuing with a sentence, don't start with a capital letter, hence the change I made here.)}
 
 Thus we have a mechanism to have our estimate of the state optimally track the actual state. In the above equations, the matrices (uppercase and bold) are of the size $n \times n$ and the vectors (lowercase and bold) are column vectors of the size $n \times 1$, where $n$ is the size of the estimated state. The observation space need not be the same size as the state space, thus if the size of the observation space is $m$, then $\mathbf{H}_k$ may be $m \times n$ and $\mathbf{z}_k$ may be $m \times 1$, however I will assume that $n = m$ for simplicity.
 
