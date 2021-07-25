@@ -2,11 +2,11 @@ module matdet2 #(parameter DATA_WIDTH=8, parameter MATRIX_SIZE=4) (input wire [(
     wire [DATA_WIDTH-1:0] w1, w2;
     
     //a * d
-    mul m1(a[7:0], a[31:24], w1);
+    mul #(.DATA_WIDTH(DATA_WIDTH)) m1(a[0+:DATA_WIDTH], a[3*DATA_WIDTH+:DATA_WIDTH], w1);
     
     //b * c
-    mul m2(a[15:8], a[23:16], w2);
+    mul #(.DATA_WIDTH(DATA_WIDTH)) m2(a[1*DATA_WIDTH+:DATA_WIDTH], a[2*DATA_WIDTH+:DATA_WIDTH], w2);
     
     //ad - bc
-    sub s1(w1, w2, det);
+    sub #(.DATA_WIDTH(DATA_WIDTH)) s1(w1, w2, det);
 endmodule
