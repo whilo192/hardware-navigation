@@ -43,25 +43,27 @@ module cpu(input wire clk, output reg [7:0] data_out, output reg data_out_new);
         mem[1*8+:8] = 8'hf0;
         mem[2*8+:8] = 8'h10;
         
-        mem[3*8+:8] = 8'h5; //Print the number at f0
-        mem[4*8+:8] = 8'hf0;
+        mem[3*8+:8] = 8'h6; //Set position f1 to 1
+        mem[4*8+:8] = 8'hf1;
+        mem[5*8+:8] = 8'h1;
         
-        mem[5*8+:8] = 8'h4; //If f0 is 0, jump to e0
-        mem[6*8+:8] = 8'hf0;
-        mem[7*8+:8] = 8'he0;
+        mem[6*8+:8] = 8'h5; //Print the number at f0
+        mem[7*8+:8] = 8'hf0;
         
-        mem[8*8+:8] = 8'h1; //Else subtract 1 (in f1) from f0, store in f0
+        mem[8*8+:8] = 8'h4; //If f0 is 0, jump to e0
         mem[9*8+:8] = 8'hf0;
-        mem[10*8+:8] = 8'hf0;
-        mem[11*8+:8] = 8'hf1;
+        mem[10*8+:8] = 8'he0;
         
-        mem[12*8+:8] = 8'h3; //Jump back to index 3
-        mem[13*8+:8] = 8'h3;
+        mem[11*8+:8] = 8'h1; //Else subtract 1 (in f1) from f0, store in f0
+        mem[12*8+:8] = 8'hf0;
+        mem[13*8+:8] = 8'hf0;
+        mem[14*8+:8] = 8'hf1;
+        
+        mem[15*8+:8] = 8'h3; //Jump back to index 3
+        mem[16*8+:8] = 8'h3;
         
         mem[224*8+:8] = 8'h3; //e0 is jump to e0 (a spinlock)
         mem[225*8+:8] = 8'he0;
-        
-        mem[241*8+:8] = 8'h1; //f1 is 1 (to subtract 1)
     end
     
     always @(posedge clk)
