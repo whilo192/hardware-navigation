@@ -6,17 +6,13 @@ module test #(parameter WIDTH={width}, parameter MATRIX_SIZE={n});
     matdet{n} #(.DATA_WIDTH(WIDTH)) m1(matrix, det);
     
     integer count = 0;
-    
-    initial
-    begin
-        matrix = 'b0;
-    end
+    integer seed = {py_seed};
     
     always
     begin
         for (integer i = 0; i < MATRIX_SIZE*MATRIX_SIZE; i++)
         begin
-            matrix[i*WIDTH+:WIDTH] = $random%10;
+            matrix[i*WIDTH+:WIDTH] = $random(seed) % 10;
         end
             
         #1;

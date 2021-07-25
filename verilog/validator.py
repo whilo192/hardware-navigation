@@ -3,6 +3,7 @@
 import os
 import sys
 import subprocess
+import random
 import numpy as np
 
 
@@ -38,7 +39,8 @@ def main(wk_dir, n, width):
     with open("test.v", 'r') as test_file:
         with open(wk_dir + "/test.v", 'w') as copy_file:
             buf = test_file.read()
-            copy_file.write(buf.format(n=n, width=width))
+            py_seed = random.randrange(1024);
+            copy_file.write(buf.format(n=n, width=width, py_seed=py_seed))
 
     os.chdir(wk_dir)
     

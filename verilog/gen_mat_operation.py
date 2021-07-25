@@ -39,7 +39,6 @@ def generate_mat_det(dir, n, data_width):
                     index = (j + 1) * n + k
                     
                     min_bit = data_width * index
-                    #max_bit = min_bit + (DATA_WIDTH - 1)
                     elements += rf"a[{min_bit}+:{data_width}], "
                     
             elements = elements[:-2] + "}"
@@ -49,7 +48,6 @@ def generate_mat_det(dir, n, data_width):
             i_plus_n = i + n
             
             min_bit = data_width * i
-            #max_bit = min_bit + (DATA_WIDTH - 1)
             
             out_file.write(rf"mul #(.DATA_WIDTH(DATA_WIDTH)) m{i}(a[{min_bit}+:{data_width}], w{i}, w{i_plus_n});" + "\n")
             mul_count += n ** 2
