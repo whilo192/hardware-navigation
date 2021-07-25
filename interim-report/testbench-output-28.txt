@@ -1,0 +1,22 @@
+Not working? numpy: -135, Icarus: 121
+    Icarus matrix: f7f7f706
+    Parsed matrix:
+        [[ 6. -9.]
+         [-9. -9.]]
+    Icarus determinant: 121
+    Parsed matrix determinant: -135.00000000000003
+Not working? numpy: 129, Icarus: -127
+    Icarus matrix: faf709f8
+    Parsed matrix:
+        [[-8.  9.]
+         [-9. -6.]]
+    Icarus determinant: -127
+    Parsed matrix determinant: 129.00000000000009
+Not working? numpy: 128, Icarus: -128
+    Icarus matrix: f809f8f9
+    Parsed matrix:
+        [[-7. -8.]
+         [ 9. -8.]]
+    Icarus determinant: -128
+    Parsed matrix determinant: 128.00000000000009
+1000 runs, 997 successful 

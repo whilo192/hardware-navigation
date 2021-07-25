@@ -59,7 +59,6 @@
 \newcommand{\notedme}[1]{\note[blue]{[<Dave> #1]}}
 \newenvironment{scaffold}{\color{red}}{}
 \newcommand{\change}[2][]{\textcolor{orange}{#2}}
-\newcommand{\tododme}[1]{\todo[inline]{[<Dave> #1]}}
 
 % To compile the final version of the report (which will remove all the todo content)
 %\usepackage{cosc4x0style}
@@ -90,14 +89,15 @@
 
 \begin{abstract}
 
-With the surge in growth of the UAV and smartphone industry, there continues to be significant demand for accurate and low power methods to measure and estimate orientation. The simplest method of estimating a device's orientation is by comparing the device's orientation to gravity, i.e.\@ by using accelerometers. This method is very easy to implement, however it becomes very inaccurate when the device is actually accelerating. To improve accuracy while the device is accelerating we can combine measurements from multiple sensors---such as gyroscopes and magnetometers---to calculate a more accurate estimate. This process is called ``sensor fusion'', and one of the most well known methods for performing sensor fusion is the Kalman filter, however this requires some fairly computationally expensive matrix mathematics, which limits potential performance, and results in greater than necessary power drain. My project explores the implementation of this in hardware, and the tradeoffs between hardware resource consumption and performance. In particular, hardware has significant flexibility in representation of numerical quantities, and choices of representation affect the accuracy of the inferred orientation.
-\tododme{Good, but you don't seem to be answering Brendan's question from the talks---and he could well be one of the academics reading this report.}
+With the surge in growth of the UAV and smartphone industry, there continues to be significant demand for accurate and low power methods to measure and estimate orientation. The simplest method of estimating a device's orientation is by comparing the device's orientation to gravity, i.e.\@ by using accelerometers. This method is very easy to implement, however it becomes very inaccurate when the device is actually accelerating. To improve accuracy while the device is accelerating we can combine measurements from multiple sensors---such as gyroscopes and magnetometers---to calculate a more accurate estimate. This process is called ``sensor fusion'', and one of the most well known methods for performing sensor fusion is the Kalman filter. Unfortunately, the Kalman filter requires some fairly computationally expensive matrix mathematics, which limits potential performance, and results in greater than necessary power drain, when implemented in software. The existing software implementations are usually sufficient for their specific applications, however improving performance is always beneficial, and lowering power consumption is very important in devices that require recharging, such as mobile phones. My project explores the implementation of this in hardware, and the tradeoffs between hardware resource consumption and performance. In particular, hardware has significant flexibility in representation of numerical quantities, and the choices of representation affect the accuracy of the inferred orientation.
+
+\end{abstract}
 
 \section{Introduction}
 
-The sales of cell phones may have slowed down in recent years, but still exceeds one billion units sold per year \cite{Mongardini_2020}. The smartphone market is only one example of an area that requires accurate orientation data to operate correctly, e.g.\@ for augmented reality applications. State estimation using the Kalman filter is still considered the ``go-to'' approach to solving this problem, however many solutions continue to do this mostly in software \cite{ayub_2012}. This isn't ideal from an efficiency standpoint, since software, while being very flexible, is not particular power efficient or fast. Several hardware-based approaches have been developed, however they are either too complex \cite{mills_2016} to be synthesised to a cheap FPGA, or are encumbered with intellectual property restrictions \todo[inline]{reference}. I aim to produce a design that can be synthesised to a sufficiently large FPGA, and interfaced with sensors to give an estimate of orientation.
+The sales of cell phones may have slowed down in recent years, but still exceeds one billion units sold per year \cite{Mongardini_2020}. The smartphone market is only one example of an area that requires accurate orientation data to operate correctly, e.g.\@ for augmented reality applications. State estimation using the Kalman filter is still considered the ``go-to'' approach to solving this problem, due to its simplicity and good performance, however many solutions continue to do this mostly in software \cite{ayub_2012}. This isn't ideal from an efficiency standpoint, since software---while being very flexible---is not particular power efficient or fast. Several hardware-based approaches have been developed, however they are either too complex \cite{mills_2016} to be synthesised to a cheap FPGA, or are encumbered with intellectual property restrictions\footnote{Such as this one from Altera: \url{https://www.intel.com/content/dam/www/programmable/us/en/pdfs/literature/ds/extended_kalman_filter.pdf}}. I aim to produce a design that can be synthesised to any FPGA that is not unreasonably small, and interface it with sensors to give an estimate of orientation.
 
-The primary motivation behind this is reduced power consumption, although there will be an increase in performance as well. Most software Kalman filter implementations are already ``good enough'', i.e.\@ the reported data is sufficiently accurate for their application's target domain, however there is always to do better. In addition, an increase in performance could be used to justify lowering the data input frequency, which would further lower power consumption. Moving the Kalman filter to hardware would also increase flexibility, allowing the CPU cycles that were used running the Kalman filter in software to do more useful work.
+The primary motivation behind this is reduced power consumption, although there will be an increase in performance as well. Most software Kalman filter implementations are already ``good enough'', i.e.\@ the reported data is sufficiently accurate for their application's target domain, however there is always the potential to do better. In addition, an increase in performance could be used to justify lowering the data input frequency, which would further lower power consumption. Moving the Kalman filter to hardware would also increase flexibility, allowing the CPU cycles that were used running the Kalman filter in software to do more useful work.
 
 \section{Background}
 
@@ -105,7 +105,7 @@ I would like to start by introducing the Kalman filter and Hardware Description 
 
 \subsection{Inertial Measurement Units}
 
-An inertial measurement unit is a device which reports the acceleration, and angular velocity of an object, typically by using accelerometers and gyroscopes. When combined with post-processing they can also report on the device's orientation. One method for integrating multiple sources and updating the understanding of the system is through sequential inference.
+An inertial measurement unit is a device which reports the acceleration and angular velocity of an object, typically by using accelerometers and gyroscopes. When combined with post-processing they can also report on the device's orientation. One method for integrating multiple sources and updating the understanding of the system is through sequential inference.
 
 \subsection{Sequential Inference}
 
@@ -116,19 +116,19 @@ Sequential inference \cite{morrison_2016} is the process of repeatedly adding in
 	P(S | D_1, m) = {P(D_1 | S, m) P(S | m) \over P(D_1 | m)}
 \end{equation}
 
-\noindent Where $S$ is the state, $D_n$ are the measurements at time step $n$, and $m$ is the model. What this equation is saying is that probability of the system being in some state, given some measurements and a model, is the product of the probability of making some measurement, given the state and the model weighted by the ratio between the probability of being in that state (given a model of the system) and the probability of making those measurements (given a model of the system). This is simply an application of Bayes' Theorem:
+\noindent Where $S$ is the state, $D_n$ are the measurements at time step $n$, and $m$ is the model. What this equation is saying is that probability of the system being in some state, given some measurements and a model, is the product of the probability of making some measurement, given the state and the model, weighted by the ratio between the probability of being in that state (given a model of the system) and the probability of making those measurements (given a model of the system). This is simply an application of Bayes' Theorem:
 
 \begin{equation}
 	P(A | B) = {P(B|A) P(A) \over P(B)}
 \end{equation}
 
-The significance of being based off of Bayes's Theorem is that it means that equation \ref{si} can be composed to give
+The significance of being based off of Bayes's Theorem is that it means that equation \ref{si} can be composed to give:
 
 \begin{equation}
 	P(S|D_2,D_1,m) = {P(D_2|D_1,S,m) \over P(D_2|D_1,m)} P(S | D_1, m)
 \end{equation}
 
-\noindent Thus we can add more measurements to our system to gain a better understanding of the state that it is in. One of the most widely used applications of sequential inference is via the Kalman filter.
+\noindent Thus we can add more measurements to our system to gain a better understanding of the state that it is in. One of the most widely used applications of sequential inference is the Kalman filter.
 
 \subsubsection{Kalman Filter}
 
@@ -140,7 +140,7 @@ The first two steps are to predict how the system will evolve:
 	\mathbf{P}_{k|k-1} &=& \mathbf{F}_k \mathbf{P}_{k-1 | k-1} \mathbf{F}^T_k + \mathbf{Q}_k
 \end{eqnarray}
 
-Here, $\mathbf{\hat{x}}_{k | k-1}$ and $\mathbf{P}_{k|k-1}$ are the \emph{a priori} (i.e.\@ without including any additional knowledge---the only knowledge we have are from the previous state---the $k-1|k-1$ subscripts) estimates of the state, and the covariance of the state. $\mathbf{F}_k$ is the state transition matrix, i.e.\@ it determines how the state changes through time. $\mathbf{B}_k$ is the control-input matrix applied to the control vector $\mathbf{u}_k$---these model any external input to the system, i.e.\@ if it was forced in a direction. Finally, $\mathbf{Q}_k$ is the covariance of the process noise, i.e.\@ the error / uncertainty that arises from the model. This uncertainty mainly arises from approximations made in the model (e.g.\@ linearisation), and from integration error (e.g.\@ if the measurement is velocity, then the estimate of position will drift if not corrected).
+Here, $\mathbf{\hat{x}}_{k | k-1}$ and $\mathbf{P}_{k|k-1}$ are the \emph{a priori} (i.e.\@ without including any additional knowledge) estimates of the state, and the covariance of the state. Our \emph{a priori} knowledge comes only from the previous state---the $k-1|k-1$ subscripts. $\mathbf{F}_k$ is the state transition matrix, i.e.\@ it determines how the state changes through time. $\mathbf{B}_k$ is the control-input matrix applied to the control vector $\mathbf{u}_k$---these model any external input to the system, i.e.\@ if it was forced in a direction. Finally, $\mathbf{Q}_k$ is the covariance of the process noise, i.e.\@ the error / uncertainty that arises from the model. This uncertainty mainly arises from approximations made in the model (e.g.\@ linearisation), and from integration error (e.g.\@ if the measurement is velocity, then the estimate of position will drift if not corrected).
 
 The next step is the update step. It first consists of the innovation stage---determining the difference between the predicted / forecast state and the observed state
 \begin{eqnarray}
@@ -148,14 +148,14 @@ The next step is the update step. It first consists of the innovation stage---de
 	\mathbf{S}_k &=& \mathbf{H}_k \mathbf{P}_{k|k-1} \mathbf{H}^T_k + \mathbf{R}_k
 \end{eqnarray}
 
-Here $\mathbf{\tilde{y}}_k$ is that difference (residual), where $\mathbf{z}_k$ is the measured state and $\mathbf{\hat{x}}_{k|k-1}$ is the a priori estimate from before. $\mathbf{H}_k$ is the observation model, which maps the state space into the observation space---e.g.\@ when measuring depth via sonar the state space contains the depth, whereas the observation state contains the sonar round trip time. The observation model converts this (predicted) state into a (predicted) observation, in this case by dividing the distance by half the speed of sound in water. $\mathbf{S}_k$ is the residual of the covariance, where $\mathbf{R}_k$ is the covariance of the process noise, in the above example, this could arise from noisy sensors, and water currents and temperature differences slightly affecting the speed of sound in the water.
+Here $\mathbf{\tilde{y}}_k$ is that difference (residual), where $\mathbf{z}_k$ is the measured state and $\mathbf{\hat{x}}_{k|k-1}$ is the \emph{a priori} estimate from before. $\mathbf{H}_k$ is the observation model, which maps the state space into the observation space---e.g.\@ when measuring depth via sonar the state space contains the depth, whereas the observation state contains the sonar round trip time. The observation model converts this (predicted) state into a (predicted) observation, in this case by dividing the distance by half the speed of sound in water. $\mathbf{S}_k$ is the residual of the covariance, where $\mathbf{R}_k$ is the covariance of the process noise, in the above example, this could arise from water currents and temperature differences slightly affecting the speed of sound in the water. It could also arise from imprecise sensors.
 
 The second part of the update step is determining the Kalman gain:
 \begin{eqnarray}
 	\mathbf{K}_k = \mathbf{P}_{k|k-1} \mathbf{H}^T_k \mathbf{S}^{-1}_k
 \end{eqnarray}
 
-\noindent This generates a gain matrix which aims to minimise the \emph{a posteriori} (updated with the sensor observations)  residual, $\mathbf{\tilde{y}}_{k|k} = \mathbf{z}_k - \mathbf{H}_k \mathbf{\hat{x}}_{k|k}$.
+\noindent This generates a gain matrix which aims to minimise the \emph{a posteriori} (updated with the sensor observations) residual, $\mathbf{\tilde{y}}_{k|k} = \mathbf{z}_k - \mathbf{H}_k \mathbf{\hat{x}}_{k|k}$.
 
 The final part is generating these \emph{a posteriori} estimates
 \begin{eqnarray}
@@ -169,46 +169,46 @@ Thus we have a mechanism to have our estimate of the state optimally track the a
 
 \subsection{Hardware Description Languages}
 
-The 1975 MOS Technology 6502 consisted of approximately 3500 transistors. This is a comprehensible size, in that it is entirely possible to imagine it being designed by hand. On the other hand, the first CPU to introduce the x86 instruction set was the Intel 8086 back in 1978, made from some 29,000 transistors. An Intel Nehalem CPU from 12 years ago contains upwards of 750 million transistors. AMD's ``Epyc'' lineup of server CPUs contain up to 50 billion transistors per CPU. These would either be difficult and time consuming to design by hand (in the case of the 8086), or downright impossible to design by hand (the modern Nehalem and Epyc Rome CPUs). Thus it was the development of Hardware Description Languages (HDLs) which enabled us to make out huge modern integrated circuits in a reliable fashion.
+The 1975 MOS Technology 6502 consisted of approximately 3500 transistors. This is a comprehensible size, in that it is entirely possible to imagine it being designed by hand. On the other hand, the first CPU to introduce the x86 instruction set was the Intel 8086 back in 1978, made from some 29,000 transistors. An Intel Nehalem CPU from 12 years ago contains upwards of 750 million transistors. AMD's ``Epyc'' lineup of server CPUs contain up to 50 billion transistors per CPU. These would either be difficult and time consuming to design by hand (in the case of the 8086), or downright impossible to design by hand (the modern Nehalem and Epyc Rome CPUs). Thus it was the development of Hardware Description Languages (HDLs) which enabled us to make our huge modern integrated circuits in a reliable fashion.
 
-If I write a program in a language such as C, and target a conventional architecture, such as ARM or x86, then the code that I write is not the actual program---it only describes the program. For example, no CPUs contain a for loop instruction---a for loop in C is converted into (some variation of) a label, a comparison and a conditional jump to the position described by that label. The process of turning the description of the program to the actual program is ``compilation'', and this is well understood.
+If I write a program in a language such as C, and target a conventional architecture, such as ARM or x86, then the code that I write is not the actual program---it only describes the program. For example, no CPUs contain a for loop instruction---a for loop in C is converted into (some variation of) a label, a comparison, and a conditional jump to the position described by that label. The process of turning the description of the program to the actual program is ``compilation'', and this is well understood.
 HDLs are the hardware equivalent of high level programming language---they do not describe logic gates and how they are connected, however they describe the behaviour of the hardware in a way such that it can be ``synthesised'' to the actual logic. For example, instead of having to describe each individual gate and connection in an adder, the designer can simply type \lstinline[language=Verilog]|a + b| and the synthesiser will generate the appropriately sized adder from that.
 
 This can of course be used for more complex problems. For example, designing a minimal\footnote{Designing a useful CPU is more complicated but entirely achievable---this one can even boot linux: \url{https://github.com/ultraembedded/biriscv}} CPU in an HDL is almost trivial---all it needs is a suitably large array (to act as memory), and a few \lstinline[language=Verilog]|if| statements to determine what to do with each opcode.
 
-In a few hours, I was able to design such a minimal CPU\footnote{I want emphasise here just how minimal this CPU is---inefficient, doesn't support a stack, no registers, no signed integers, no floating point numbers etc.\@---it is just a toy to show what can be done with HDLs such as Verilog} which is included below:
+In a few hours, I was able to design such a minimal CPU\footnote{I want emphasise here just how minimal this CPU is---inefficient, doesn't support a stack, no registers, no signed integers, no floating point numbers etc.\@---it is just a toy to show what can be done with HDLs such as Verilog.} (using an HDL called ``Verilog'') which is included below:
 
 \lstinputlisting[language=Verilog]{cpu-include.v}
 
-Which gives the following output when simulated:
+This CPU and testbench produces the following output when simulated:
 
 \lstinputlisting[numbers=none, backgroundcolor=\color{white}]{cpu-bench-result.txt}
 
-In other words, it is a perfectly functioning CPU with its own machine language code, which supports very basic port-mapped I/O, unconditional and conditional branching, and basic unsigned integer arithmetic---in less than 100 lines of code.
+In other words, it is a perfectly functioning CPU with its own machine language code, which supports very basic port-mapped I/O, unconditional and conditional branching, and basic unsigned integer arithmetic---in around 100 lines of code.
 
 \subsubsection{Icarus Verilog}
 
 Like all code, code written in HDLs such as Verilog needs to be tested to ensure that bugs are found and fixed before the hardware is manufactured. It is entirely possible to synthesise the Verilog to an FPGA and perform the tests on the FPGA, however this is difficult to automate, since it requires interfacing with external hardware. If all we want to do is simple verification that the Verilog we wrote is correct, then we can just simulate the Verilog in software and automatically check that the code behaves as we expect.
 
-One tool for this is Icarus Verilog (Icarus), which is available under the GNU General Public License (GPL). With Icarus, I can simply create a testbench module, and run automated tests on any Verilog code I write or generate. I used this same approach to simulate the CPU that I presented earlier---the code in the \lstinline[language=Verilog]|cpu_test| module is not synthesisable (i.e.\@ it can't be turned into an actual circuit), however Icarus is able to parse it and use it to simulate the \lstinline[language=Verilog]|cpu| module.
+One tool for this is Icarus Verilog (Icarus), which is available under the GNU General Public License (GPL). With Icarus, I can simply create a testbench module, and run automated tests on any Verilog code I write or generate. I used this same approach to simulate the CPU that I presented earlier---the code in the \lstinline[language=Verilog]|cpu_test| module is not synthesisable (i.e.\@ it can't be turned into an actual circuit), however Icarus is able to parse it and use it to simulate the \lstinline[language=Verilog]|cpu| module (which is synthesisable).
 
 \subsection{Hardware vs.\@ Software Considerations}
 
-Many common operations on large matrices can be defined recursively, such as the determinant of an $n \times n$ matrix being a function of the determinants of its $(n-1) \times (n-1)$ minor matrices. If we consider imperative programming in a language such as C (again assuming that we are targeting a conventional architecture such as ARM or x86), then we try to avoid recursion as much as possible, favouring iterative approaches, since they tend to avoid some of the huge blow outs in runtime that can occur, since many recursive algorithms often calculate the same value multiple times. 
-\tododme{Still not entirely sure readers will swallow this. Feels more like an algorithm switch than a problem with recursion \emph{per se}. The reason the iterative approach implemented similarly would have a lower complexity, would probably largely just because developers would tend to end up something akin to memoisation. For example, if avoiding double recursion, it's quite possible to directly turn recursion into iteration with tail-call optimisation / last-call optimisation.}
-One example of this is the Fibonacci sequence:
+Many common operations on large matrices can be defined recursively, such as the determinant of an $n \times n$ matrix being a function of the determinants of its $(n-1) \times (n-1)$ minor matrices. Recursive algorithms are fairly simple to express mathematically and can be rather intuitive, however many implementations of these recursive algorithms introduce inefficiencies, such as calculating the same value multiple times. One example of this is the Fibonacci sequence:
+
 \begin{eqnarray}
 	F_0&&= 0 \\
 	F_1&&= 1 \\
 	F_n&&= F_{n-1} + F_{n-2}
 \end{eqnarray}
 
-\noindent Calculating $F_4$ requires knowing $F_3$ and $F_2$, but the calculation of $F_3$ also requires knowing $F_2$. A naive approach would result in several of the intermediate values being calculated multiple times, which is an inefficient use of time. One solution to this is memoisation, which is where the computed values would be cached to avoid re-computing them.
+\noindent Calculating $F_4$ requires knowing $F_3$ and $F_2$, but the calculation of $F_3$ also requires knowing $F_2$. This means that we need to calculate $F_2$ at least twice, which is an inefficient use of time---and we have to wait until $F_2$ is determined before we can even start to calculate $F_3$. The first problem can be solved using techniques such as memoisation, however the second problem is inherent in software, since the CPU (assuming it is something mainstream like x86 or ARM) needs to perform one instruction after another\footnote{Modern CPUs have multiple cores, and many support simultaneous multithreading, which allow some parallelism, but still nowhere near as much as even a \$5.00 dollar FPGA}, creating a dependency in time between the calculation of $F_3$ and $F_2$.
 
-Hardware has similar concerns, except they manifest differently. Recursion in software takes up time, whereas recursion in hardware takes up space. This can be seen in \ref{recursion_space}, where it takes several pages to determine the determinant of a 4x4 matrix, but the calculation will be performed almost immediately. This should be considered in contrast to \ref{recursion_time}, which takes up a lot less space, and works for arbitrary sized matrices---however it will take much longer to execute (even if it were written in a lower level language).
-\tododme{But you're not saying anything positive about recursion in the software example, so I'm not sure how the topic sentence is intended to preformat readers' minds?}
+Hardware solves this problem by moving the time dependency into a spatial dependency---we can create several Fibonacci modules, and wire them into each other, e.g.\@ the $F_4$ module could take inputs from an $F_3$ module and an $F_2$ module. Since these modules act almost instantaneously this makes the overall calculation also almost instantaneous.
 
-These stem from the inherently sequential nature of software and the inherently parallel nature of hardware. It would be entirely possible to parallelise the matrix determinant code to use multiple processors / multiple cores, however this would introduce several challenges, thus the simple sequential program is the ``default'' (i.e.\@ most intuitively sensible option). If we now consider the hardware option, it would be possible for a matrix determinant calculating module to only have only one arithmetic unit, and rewrite the code such that only one mathematical operation is happening at any given time. However, this would introduce considerable complexity since we would need to store state (how far through the calculation we are), and the module would need to be clocked---effectively turning the module into a very specific CPU. Thus the parallel implementation can be considered the ``default'' for hardware.
+We can see the contrast between hardware and software in the determinant calculation described earlier. A software implementation, like the one listed in \ref{recursion_time} takes time but uses very little space, whereas the one listed in \ref{recursion_space} takes almost no time but a lot of space---despite both being basically the same naive recursive algorithm. Here we see the differences between hardware and software---hardware is inherently parallel, whereas software is inherently sequential.
+
+The other advantage hardware has over software is that it can be made very specific to an application, meaning that the overhead associated with having a CPU can be removed for the specific hardware concerned. For example, a hardware Fibonacci module does not require complex instruction decoding circuitry.
 
 \section{Progress}
 
@@ -225,7 +225,7 @@ The first phase of the project was getting a simple Kalman filter working. This 
 	\label{1d_position_fig}
 \end{figure}
 
-The next system was the same as before except the velocity was measured, and the position determined by integrating---i.e.\@ by adding the velocity multiplied by the time step to the position. In this scenario, the velocity is cyclical, with a slight increase over time. As we can see in figure \ref{1d_velocity_fig}, the model continues to perform well, with minimal error, that appears to be bounded.
+The next system was the same as before except the velocity was measured, and the position determined by integrating---i.e.\@ by adding the velocity multiplied by the time step to the previous position. In this scenario, the velocity is cyclical, with a slight increase over time. As we can see in figure \ref{1d_velocity_fig}, the model continues to perform well, with minimal error which appears to be bounded.
 
 \begin{figure}[thp]
 	\centering
@@ -254,14 +254,14 @@ From this we can also demonstrate how sensor and model noise affect the accuracy
 	x_\RMS = \sqrt{{1 \over n}(x_1^2 + x_2^2 + \dots + x_n^2)}
 \end{equation}
 
-If we run multiple iterations of the three dimensional scenario, altering the amount of noise added the the measurements and system each time, we can calculate the RMS of the error values and plot that against that noise figure, as shown in figure \ref{3d_rms_fig}.
+If we run multiple iterations of the three dimensional scenario, altering the amount of noise added to the measurements and system each time, we can calculate the RMS of the error values and plot that against that noise figure, as shown in figure \ref{3d_rms_fig}.
 
 \begin{figure}[thp]
 	\centering
 	
 	\includegraphics[width=\textwidth]{3d-rms.pdf}
 	
-	\caption{A plot showing the average error increasing as the amount of noise increases. The growth is approximately linear, with a slope of 9.23.}
+	\caption{A plot showing the average error increasing as the amount of noise increases. The growth is approximately linear.}
 	
 	\label{3d_rms_fig}
 \end{figure}
@@ -279,13 +279,19 @@ Here we see linear growth (with some noise)---as we make the simulated sensors m
 
 \subsection{Verilog Implementation}
 
-As we have seen in \ref{recursion_space}, the amount of Verilog code required to perform a moderately complicated mathematical operation is quite vast. 
+As we have seen in \ref{recursion_space}, the amount of Verilog code required to perform a moderately complicated mathematical operation is quite vast.
 
-The $4\times4$ code I show could be written by hand fairly easily, however this would not be possible for the $12 \times 12$ matrix required for three dimensions each of orientation, acceleration, angular velocity, and the magnetic field vector---even a $9 \times 9$ version took up 40 slides in a beamer.
+The $4\times4$ code I show could be written by hand fairly easily, however this would not be possible for the $12\times12$ matrix required for three dimensions each of orientation, acceleration, angular velocity, and the magnetic field vector---even a $9\times9$ version took up 40 slides in beamer.
 
 The solution is to automatically generate the Verilog code in software---this is the approach I used for the code in \ref{recursion_space}. This is not a trivial task but it is significantly easier to write a few hundred lines of Python than 20 KiB of Verilog.
 
-So far, I have a reliable tool to generate the Verilog for calculating the determinant of arbitrarily sized matrices (with the maximum size specified when the Verilog is generated). I have also created a testbench module to confirm that it is, in fact, reliable. \tododme{Ideally include the output from that here, or markers may not be sure of the degree to which to give you credit for the claimed work done.}
+So far, I have a reliable tool to generate the Verilog for calculating the determinant of arbitrarily sized matrices (with the maximum size specified when the Verilog is generated). I have also created a testbench module and associated Python script to confirm that it is, in fact, reliable.
+
+The testbench model gives the following output when the matrix values are between -10 and +10, and all numbers are 8 bits long, for $2\times2$ matrices. Here we can see the module failing occasionally due to integer overflow:
+
+\lstinputlisting[numbers=none, backgroundcolor=\color{white}]{testbench-output-28.txt}
+
+With 16-bit numbers, all 1000 runs for the $2\times2$ matrices succeed. For a $6\times6$ matrix, 24-bit numbers are needed. If the range of matrix values is increased to -100 to 100 then 48 bits are required for a $6\times6$ matrix, and 16 bits are required for a simple $2\times2$ matrix.
 
 \section{Future Work}
 
@@ -301,8 +307,6 @@ Certain specific tasks include:
 	\item Verifying that the final Verilog implementation operates correctly, by comparing it to the Python implementation---this would take less than one week, and would mainly involve adding some method to log data from the FPGA to a computer, e.g.\@ via a UART module.
 	\item Comparing the performance when preferring more precise sensor readings versus more frequent sensor readings---this would take about one week, and would be fairly straightforward, e.g.\@ changing clock frequencies and data bus widths.
 \end{itemize}
-
-\end{abstract}
 
 \printbibliography
 
