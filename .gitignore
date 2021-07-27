@@ -10,5 +10,8 @@
 *.fdb_latexmk
 *.fls
 *.run.xml
+/py-kalman/fig.pdf
 /verilog/src
+/aims/aims.pdf
 /interim-report/interim-report.pdf
+/final-report/final-report.pdf
