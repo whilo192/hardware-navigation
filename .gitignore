@@ -1,7 +1,6 @@
 *.aux
 *.log
 *.out
-*.pdf
 *.synctex.gz
 *.toc
 *.ipynb_checkpoints
@@ -12,3 +11,4 @@
 *.fls
 *.run.xml
 /verilog/src
+/interim-report/interim-report.pdf
