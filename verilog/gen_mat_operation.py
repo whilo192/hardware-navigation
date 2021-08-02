@@ -7,19 +7,59 @@ import shutil
 mul_count = 0
 add_sub_count = 0
 
-def generate_mat_det(dir, n, data_width):
+def generate_scalar_vector_matrix(dir, data_width):
+    with open(dir + rf"/scalvecmat.v", 'w') as out_file:
+        out_file.write(rf"module scalvecmat #(parameter DATA_WIDTH={data_width}, parameter MATRIX_SIZE) (input wire [DATA_WIDTH - 1:0] a, input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] b, output wire [DATA_WIDTH - 1:0] scale);" + "\n")
+        
+        out_file.write(rf"mul #(parameter DATA_WIDTH=DATA_WIDTH*MATRIX_SIZE) m1(a, b, scale);" + "\n")
+        out_file.write(rf"endmodule" + "\n")
+
+def generate_vector_vector(dir, n, data_width):
+    with open(dir + rf"/vecvec{n}.v", 'w') as out_file:
+        out_file.write(rf"module vecvec{n} #(parameter DATA_WIDTH={data_width}, parameter VECTOR_SIZE={n}) (input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output wire [DATA_WIDTH - 1:0] dot);" + "\n")
+        
+        
+        for i in range(n):
+            out_file.write(rf"wire [DATA_WIDTH-1:0] w{i};" + "\n")
+        
+        for i in range(n-2):
+            n_plus_i = n + i
+            out_file.write(rf"wire [DATA_WIDTH-1:0] w{n_plus_i};" + "\n")
+        
+        for i in range(n):
+            out_file.write(rf"mul #(parameter DATA_WIDTH=DATA_WIDTH) m{i}(a[{i}*DATA_WIDTH+:DATA_WIDTH], b[{i}*DATA_WIDTH+:DATA_WIDTH], w{i});" + "\n")
+        
+        for i in range(n-1):
+            n_plus_i = n + i
+            i_plus_one = i + 1
+            n_plus_i_minus_one = n + i - 1
+            
+            if i == 0:
+                out_file.write(rf"add #(parameter DATA_WIDTH=DATA_WIDTH) a{i}(w{i}, w{i_plus_one}, w{n_plus_i});" + "\n")
+            elif i == n-2:
+                out_file.write(rf"add #(parameter DATA_WIDTH=DATA_WIDTH) a{i}(w{i_plus_one}, w{n_plus_i_minus_one}, dot);" + "\n")
+            else:
+                out_file.write(rf"add #(parameter DATA_WIDTH=DATA_WIDTH) a{i}(w{i_plus_one}, w{n_plus_i_minus_one}, w{n_plus_i});" + "\n")
+                
+        out_file.write(rf"endmodule" + "\n")
+
+def generate_vector_matrix(dir, n, data_width):
+    pass
+
+def generate_matrix_matrix(dir, n, data_width):
+    pass
+
+def generate_matrix_transpose(dir, n, data_width):
+    pass
+
+def generate_matrix_determinant(dir, n, data_width):
     global mul_count
     global add_sub_count
     
     if n <= 2:
-        if n == 2:
-            shutil.copyfile("matdet2.v", dir + "/matdet2.v")
-            shutil.copyfile("add.v", dir + "/add.v")
-            shutil.copyfile("sub.v", dir + "/sub.v")
-            shutil.copyfile("mul.v", dir + "/mul.v")
         return
     
-    generate_mat_det(dir, n-1, data_width)
+    generate_matrix_determinant(dir, n-1, data_width)
     
     n2 = n ** 2
     n_minus_1 = n - 1
@@ -72,13 +112,24 @@ def generate_mat_det(dir, n, data_width):
 
         out_file.write(r"endmodule" + "\n")
 
+def generate_matrix_inverse():
+    pass
+
 def main(dir, depth, data_width):
     global mul_count
     global add_sub_count
     
     os.makedirs(dir, exist_ok=True)
     
-    generate_mat_det(dir, depth, data_width)
+    shutil.copyfile("matdet2.v", dir + "/matdet2.v")
+    shutil.copyfile("add.v", dir + "/add.v")
+    shutil.copyfile("sub.v", dir + "/sub.v")
+    shutil.copyfile("mul.v", dir + "/mul.v")
+    shutil.copyfile("div.v", dir + "/div.v")
+    
+    generate_scalar_vector_matrix(dir, data_width)
+    generate_vector_vector(dir, depth, data_width)    
+    generate_matrix_determinant(dir, depth, data_width)
     
     print("Multiplier count:", mul_count)
     print("Adder / subtractor count:", add_sub_count)
