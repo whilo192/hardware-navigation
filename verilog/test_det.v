@@ -22,7 +22,7 @@ module test #(parameter WIDTH={width}, parameter MATRIX_SIZE={n});
         
         count++;
         
-        if (count == 1000)
+        if (count == {py_count})
         begin
             $finish();
         end
