@@ -14,7 +14,7 @@ module test #(parameter WIDTH={width}, parameter MATRIX_SIZE={n});
         begin
             matrix[i*WIDTH+:WIDTH] = $random(seed) % 10;
         end
-            
+
         #1;
 
         $display("mat: %h", matrix);

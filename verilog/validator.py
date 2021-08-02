@@ -66,7 +66,7 @@ def main(wk_dir, n, width, count):
         os.chdir(wk_dir)
         
         
-        my_subprocess_run(["iverilog", "-o", rf"test_{op}", rf"test_{op}.v"] +  ["matdet" + str(i+2) +".v" for i in range(n-1)] + ["mul.v", "add.v", "sub.v"] + [rf"scalvecmat{n}.v", rf"mattrans{n}.v", rf"matinv{n}.v", rf"vecvec{n}.v", rf"matmat{n}.v"])
+        my_subprocess_run(["iverilog", "-o", rf"test_{op}", rf"test_{op}.v"] +  ["matdet" + str(i+2) +".v" for i in range(n-1)] + ["mul.v", "div.v", "add.v", "sub.v"] + [rf"scalvecmat{n}.v", rf"mattrans{n}.v", rf"matinv{n}.v", rf"vecvec{n}.v", rf"matmat{n}.v"])
         result = my_subprocess_run(["vvp", rf"test_{op}"], False)
         
         print(result)
@@ -75,9 +75,12 @@ def main(wk_dir, n, width, count):
         
         lines = result.split('\n')
         
-        print(generate_numpy_matrix_from_verilog_output(lines[0], n, width))
-        print(generate_numpy_matrix_from_verilog_output(lines[1], n, width))
-        print(generate_numpy_matrix_from_verilog_output(lines[2], n, width))
+        try:
+            print(generate_numpy_matrix_from_verilog_output(lines[0], n, width))
+            print(generate_numpy_matrix_from_verilog_output(lines[1], n, width))
+            print(generate_numpy_matrix_from_verilog_output(lines[2], n, width))
+        except Exception:
+            pass
     
     return
     ok_count = 0

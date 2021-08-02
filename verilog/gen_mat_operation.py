@@ -8,10 +8,12 @@ mul_count = 0
 add_sub_count = 0
 
 def generate_scalar_vector_matrix(dir, n, data_width):
+    n2 = n ** 2
+    
     with open(dir + rf"/scalvecmat{n}.v", 'w') as out_file:
-        out_file.write(rf"module scalvecmat{n} #(parameter DATA_WIDTH={data_width}, parameter VECTOR_SIZE={n}) (input wire [DATA_WIDTH - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] scale);" + '\n')
+        out_file.write(rf"module scalvecmat{n} #(parameter DATA_WIDTH={data_width}, parameter VECTOR_SIZE={n2}) (input wire [DATA_WIDTH - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] scale);" + '\n')
         
-        empty_bits = (n-1) * data_width
+        empty_bits = (n**2-1) * data_width
         
         out_file.write(rf"mul #(.DATA_WIDTH(DATA_WIDTH*VECTOR_SIZE)) m1(" + "{" + rf"{empty_bits}'b0, a" +"}" + rf", b, scale);" + '\n')
         out_file.write(rf"endmodule" + '\n')
@@ -106,7 +108,7 @@ def generate_matrix_determinant(dir, n, data_width):
     
     with open(dir + rf"/matdet{n}.v", 'w') as out_file:
         out_file.write(rf"module matdet{n} #(parameter DATA_WIDTH={data_width}, parameter MATRIX_SIZE={n2}) (input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [DATA_WIDTH-1:0] det);" + '\n')
-        
+               
         out_file.write(r"wire [DATA_WIDTH-1:0] " + ", ".join([rf"w{x}" for x in range(n * 3 - 1)]) + ";" + '\n')
             
         for i in range(n): #Column i
@@ -153,8 +155,85 @@ def generate_matrix_determinant(dir, n, data_width):
         out_file.write(r"endmodule" + '\n')
 
 def generate_matrix_inverse(dir, n, data_width):
+    n_minus_one = n-1
+    
+    n2 = n ** 2
+    
+
     with open(dir + rf"/matinv{n}.v", 'w') as out_file:
-        out_file.write('\n')
+        out_file.write(rf"module matinv{n} #(parameter DATA_WIDTH={data_width}, parameter MATRIX_SIZE={n2}) (input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] inv);" + '\n')
+        
+        
+        out_file.write(rf"wire [DATA_WIDTH-1:0] wdet;" + '\n')
+        out_file.write(rf"wire [DATA_WIDTH-1:0] wdetdiv;" + '\n')
+        
+        out_file.write(rf"wire [(MATRIX_SIZE*DATA_WIDTH)-1:0] m_trans;" + '\n')
+        
+        out_file.write(rf"matdet{n} #(.DATA_WIDTH(DATA_WIDTH)) mdet(a, wdet);" + '\n')
+        
+        zero = (data_width//2 - 1) * "0" + "1." + (data_width//2) * "0"
+        
+        out_file.write(rf"div #(.DATA_WIDTH(DATA_WIDTH)) d1 ({zero}, wdet, wdetdiv);" + '\n')
+        
+        if n == 2:
+            out_file.write(rf"wire [DATA_WIDTH-1:0] w1;" + '\n')
+            out_file.write(rf"wire [DATA_WIDTH-1:0] w2;" + '\n')
+            
+            out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH)) s1({data_width}'b0, a[1*DATA_WIDTH+:DATA_WIDTH], w1);" + '\n')
+            out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH)) s1({data_width}'b0, a[2*DATA_WIDTH+:DATA_WIDTH], w2);" + '\n')
+            
+            out_file.write(r"assign m_trans = {a[3*DATA_WIDTH+:DATA_WIDTH], w1, w2, a[0*DATA_WIDTH+:DATA_WIDTH]};" + '\n')
+            
+            out_file.write(rf"scalvecmat{n} #(.DATA_WIDTH(DATA_WIDTH)) svm1(wdetdiv, m_trans, inv);" + '\n')
+            
+            out_file.write(r"endmodule" + '\n')
+            return
+        
+        
+        for i in range(n): # col
+            for j in range(n): # row
+                out_file.write(rf"wire [DATA_WIDTH-1:0] w_min_{j}{i};" + '\n')
+                out_file.write(rf"wire [DATA_WIDTH-1:0] w_adj_{j}{i};" + '\n')
+                
+                
+        for i in range(n): # col
+            for j in range(n): # row
+                indicies = []
+        
+                pos = 0
+        
+                for y in range(n):
+                    for x in range(n):
+                        if x != j and y != i:
+                            indicies += [rf"a[{pos}*DATA_WIDTH+:DATA_WIDTH]"]
+                            
+                        pos += 1
+        
+                sub_matrix = "{" + ",".join(indicies) + "}"
+        
+                out_file.write(rf"matdet{n_minus_one} #(.DATA_WIDTH(DATA_WIDTH)) m{j}{i}({sub_matrix}, w_min_{j}{i});" + '\n')
+                
+        pos = 0
+        trans_list = []
+        
+        for i in range(n): # col
+            for j in range(n): # row
+                if pos % 2 == 0: # even
+                    out_file.write(rf"assign w_adj_{j}{i} = w_min_{j}{i};" + '\n')
+                else:
+                    out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH)) s{pos}({data_width}'b0, w_min_{j}{i}, w_adj_{j}{i});" + '\n')
+                
+                trans_list = [rf"w_adj_{j}{i}"]
+                
+                pos += 1
+                
+        trans = "{" + ",".join(trans_list) + "}"
+            
+        out_file.write(rf"assign m_trans={trans};" + '\n')
+            
+        out_file.write(rf"scalvecmat{n} #(.DATA_WIDTH(DATA_WIDTH)) svm1(wdetdiv, m_trans, inv);" + '\n')
+            
+        out_file.write(r"endmodule" + '\n')
     
 
 def main(dir, depth, data_width):
