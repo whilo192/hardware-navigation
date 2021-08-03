@@ -170,19 +170,17 @@ def generate_matrix_inverse(dir, n, data_width):
         out_file.write(rf"wire [(MATRIX_SIZE*DATA_WIDTH)-1:0] m_trans;" + '\n')
         
         out_file.write(rf"matdet{n} #(.DATA_WIDTH(DATA_WIDTH)) mdet(a, wdet);" + '\n')
-        
-        zero = (data_width//2 - 1) * "0" + "1." + (data_width//2) * "0"
-        
-        out_file.write(rf"div #(.DATA_WIDTH(DATA_WIDTH)) d1 ({zero}, wdet, wdetdiv);" + '\n')
+                
+        out_file.write(rf"div #(.DATA_WIDTH(DATA_WIDTH)) d1 ({data_width}'d10000, wdet, wdetdiv);" + '\n')
         
         if n == 2:
             out_file.write(rf"wire [DATA_WIDTH-1:0] w1;" + '\n')
             out_file.write(rf"wire [DATA_WIDTH-1:0] w2;" + '\n')
             
             out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH)) s1({data_width}'b0, a[1*DATA_WIDTH+:DATA_WIDTH], w1);" + '\n')
-            out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH)) s1({data_width}'b0, a[2*DATA_WIDTH+:DATA_WIDTH], w2);" + '\n')
+            out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH)) s2({data_width}'b0, a[2*DATA_WIDTH+:DATA_WIDTH], w2);" + '\n')
             
-            out_file.write(r"assign m_trans = {a[3*DATA_WIDTH+:DATA_WIDTH], w1, w2, a[0*DATA_WIDTH+:DATA_WIDTH]};" + '\n')
+            out_file.write(r"assign m_trans = {a[0*DATA_WIDTH+:DATA_WIDTH], w2, w1, a[3*DATA_WIDTH+:DATA_WIDTH]};" + '\n')
             
             out_file.write(rf"scalvecmat{n} #(.DATA_WIDTH(DATA_WIDTH)) svm1(wdetdiv, m_trans, inv);" + '\n')
             
@@ -190,14 +188,14 @@ def generate_matrix_inverse(dir, n, data_width):
             return
         
         
-        for i in range(n): # col
-            for j in range(n): # row
-                out_file.write(rf"wire [DATA_WIDTH-1:0] w_min_{j}{i};" + '\n')
-                out_file.write(rf"wire [DATA_WIDTH-1:0] w_adj_{j}{i};" + '\n')
+        for i in range(n): # row
+            for j in range(n): # col
+                out_file.write(rf"wire [DATA_WIDTH-1:0] w_min_{i}{j};" + '\n')
+                out_file.write(rf"wire [DATA_WIDTH-1:0] w_adj_{i}{j};" + '\n')
                 
                 
-        for i in range(n): # col
-            for j in range(n): # row
+        for i in range(n): # row
+            for j in range(n): # col
                 indicies = []
         
                 pos = 0
@@ -211,19 +209,19 @@ def generate_matrix_inverse(dir, n, data_width):
         
                 sub_matrix = "{" + ",".join(indicies) + "}"
         
-                out_file.write(rf"matdet{n_minus_one} #(.DATA_WIDTH(DATA_WIDTH)) m{j}{i}({sub_matrix}, w_min_{j}{i});" + '\n')
+                out_file.write(rf"matdet{n_minus_one} #(.DATA_WIDTH(DATA_WIDTH)) m{i}{j}({sub_matrix}, w_min_{i}{j});" + '\n')
                 
         pos = 0
         trans_list = []
         
-        for i in range(n): # col
-            for j in range(n): # row
+        for i in range(n): # row
+            for j in range(n): # col
                 if pos % 2 == 0: # even
-                    out_file.write(rf"assign w_adj_{j}{i} = w_min_{j}{i};" + '\n')
+                    out_file.write(rf"assign w_adj_{i}{j} = w_min_{i}{j};" + '\n')
                 else:
-                    out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH)) s{pos}({data_width}'b0, w_min_{j}{i}, w_adj_{j}{i});" + '\n')
+                    out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH)) s{pos}({data_width}'b0, w_min_{i}{j}, w_adj_{i}{j});" + '\n')
                 
-                trans_list = [rf"w_adj_{j}{i}"]
+                trans_list += [rf"w_adj_{i}{j}"]
                 
                 pos += 1
                 
