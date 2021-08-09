@@ -86,7 +86,7 @@ def main(wk_dir, n, width, bin_pos, count):
                 rhs = generate_numpy_matrix_from_verilog_output(lines[i + 1], n, width, bin_pos)
                 prod = generate_numpy_matrix_from_verilog_output(lines[i + 2], n, width, bin_pos)
                 
-                np_prod = lhs * rhs
+                np_prod = np.matmul(lhs, rhs)
                 
                 err = np_scal_diff(prod, np_prod)
                 

@@ -15,7 +15,15 @@ def generate_scalar_vector_matrix(dir, n, data_width, bin_pos):
         
         empty_bits = (n**2-1) * data_width
         
-        out_file.write(rf"mul #(.DATA_WIDTH(DATA_WIDTH*VECTOR_SIZE)) m1(" + "{" + rf"{empty_bits}'b0, a" +"}" + rf", b, scale);" + '\n')
+        for i in range(n2):
+            out_file.write(rf"wire [DATA_WIDTH-1:0] w{i};")
+            
+        for i in range(n2):
+            i_str = rf"{i}*DATA_WIDTH+:DATA_WIDTH"
+            out_file.write(rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m{i}(a, b[{i_str}], w{i});" + "\n")
+        
+        out_file.write(rf"assign scale = " + "{" + ",".join([rf"w{i}" for i in range(n2)]) + "};" + '\n')
+        
         out_file.write(rf"endmodule" + '\n')
 
 def generate_vector_vector(dir, n, data_width, bin_pos):
@@ -159,9 +167,10 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
     
     n2 = n ** 2
     
+    whole_bits = data_width - bin_pos
+    
     with open(dir + rf"/matinv{n}.v", 'w') as out_file:
         out_file.write(rf"module matinv{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n2}) (input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] inv);" + '\n')
-        
         
         out_file.write(rf"wire [DATA_WIDTH-1:0] wdet;" + '\n')
         out_file.write(rf"wire [DATA_WIDTH-1:0] wdetdiv;" + '\n')
@@ -170,7 +179,7 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
         
         out_file.write(rf"matdet{n} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) mdet(a, wdet);" + '\n')
                 
-        out_file.write(rf"div #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) d1 ({data_width}'d10000, wdet, wdetdiv);" + '\n')
+        out_file.write(r"div #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) d1 ({" + rf"{whole_bits}'b1, {bin_pos}'b0" + "}, wdet, wdetdiv);" + '\n')
         
         if n == 2:
             out_file.write(rf"wire [DATA_WIDTH-1:0] w1;" + '\n')
@@ -236,6 +245,8 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
 def main(dir, depth, data_width, bin_pos):
     global mul_count
     global add_sub_count
+    
+    shutil.rmtree("src", ignore_errors=True)
     
     os.makedirs(dir, exist_ok=True)
     
