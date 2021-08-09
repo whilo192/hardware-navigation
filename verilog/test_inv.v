@@ -3,7 +3,9 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
 
     wire [MATRIX_SIZE*MATRIX_SIZE*WIDTH-1:0] inv;
 
-    matinv{n} #(.DATA_WIDTH(WIDTH), .BIN_POS(BIN_POS)) m1(matrix, inv);
+    wire w_singular;
+    
+    matinv{n} #(.DATA_WIDTH(WIDTH), .BIN_POS(BIN_POS)) m1(matrix, inv, w_singular);
     
     integer count = 0;
     integer seed = {py_seed};
@@ -17,8 +19,15 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
 
         #1;
 
-        $display("mat: %h", matrix);
-        $display("inv: %h", inv);
+        if (w_singular)
+        begin
+            $display("singular");
+        end
+        else
+        begin
+            $display("mat: %h", matrix);
+            $display("inv: %h", inv);
+        end
         
         count++;
         

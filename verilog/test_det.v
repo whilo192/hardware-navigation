@@ -3,7 +3,7 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
 
     wire [WIDTH-1:0] det;
 
-    matdet{n} #(.DATA_WIDTH(WIDTH), .BIN_POS(BIN_POS)) m1(matrix, det);
+    matdet{n} #(.DATA_WIDTH(WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE)) m1(matrix, det);
     
     integer count = 0;
     integer seed = {py_seed};

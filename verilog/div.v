@@ -1,7 +1,7 @@
-module div #(parameter DATA_WIDTH=16, parameter BIN_POS=8) (input wire [DATA_WIDTH-1:0] a, input wire [DATA_WIDTH-1:0] b, output wire [DATA_WIDTH-1:0] quot);
-    wire [2*DATA_WIDTH-1:0] w1;
-    wire [2*DATA_WIDTH-1:0] w2;
-    wire [3*DATA_WIDTH-1:0] w3;
+module div #(parameter DATA_WIDTH=0, parameter BIN_POS=0) (input wire signed [DATA_WIDTH-1:0] a, input wire signed [DATA_WIDTH-1:0] b, output wire signed [DATA_WIDTH-1:0] quot);
+    wire signed [2*DATA_WIDTH-1:0] w1;
+    wire signed [2*DATA_WIDTH-1:0] w2;
+    wire signed [3*DATA_WIDTH-1:0] w3;
     
     assign w1 = a <<< DATA_WIDTH;
     assign w2 = w1 / b;

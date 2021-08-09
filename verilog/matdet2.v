@@ -1,4 +1,4 @@
-module matdet2 #(parameter DATA_WIDTH=16, parameter BIN_POS=8, parameter MATRIX_SIZE=4) (input wire [(DATA_WIDTH * MATRIX_SIZE)-1:0] a, output wire [DATA_WIDTH-1:0] det);
+module matdet2 #(parameter DATA_WIDTH=0, parameter BIN_POS=0, parameter MATRIX_SIZE=0) (input wire [(DATA_WIDTH * MATRIX_SIZE * MATRIX_SIZE)-1:0] a, output wire [DATA_WIDTH-1:0] det);
     wire [DATA_WIDTH-1:0] w1, w2;
     
     //a * d

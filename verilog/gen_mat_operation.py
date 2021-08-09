@@ -7,22 +7,22 @@ import shutil
 mul_count = 0
 add_sub_count = 0
 
-def generate_scalar_vector_matrix(dir, n, data_width, bin_pos):
+def generate_scalar_vector(dir, n, data_width, bin_pos):
     n2 = n ** 2
     
-    with open(dir + rf"/scalvecmat{n}.v", 'w') as out_file:
-        out_file.write(rf"module scalvecmat{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter VECTOR_SIZE={n2}) (input wire [DATA_WIDTH - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] scale);" + '\n')
+    with open(dir + rf"/scalvec{n}.v", 'w') as out_file:
+        out_file.write(rf"module scalvec{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter VECTOR_SIZE={n}) (input wire [DATA_WIDTH - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] scale);" + '\n')
         
         empty_bits = (n**2-1) * data_width
         
         for i in range(n2):
-            out_file.write(rf"wire [DATA_WIDTH-1:0] w{i};")
+            out_file.write(rf"wire [DATA_WIDTH-1:0] w{i};" + '\n')
             
         for i in range(n2):
             i_str = rf"{i}*DATA_WIDTH+:DATA_WIDTH"
             out_file.write(rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m{i}(a, b[{i_str}], w{i});" + "\n")
         
-        out_file.write(rf"assign scale = " + "{" + ",".join([rf"w{i}" for i in range(n2)]) + "};" + '\n')
+        out_file.write(rf"assign scale = " + "{" + ",".join([rf"w{i}" for i in range(n2-1,-1,-1)]) + "};" + '\n')
         
         out_file.write(rf"endmodule" + '\n')
 
@@ -62,7 +62,7 @@ def generate_matrix_matrix(dir, n, data_width, bin_pos):
     n2 = n ** 2
     
     with open(dir + rf"/matmat{n}.v", 'w') as out_file:
-        out_file.write(rf"module matmat{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n2}) (input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] a, input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] b, output wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] mul);" + '\n')
+        out_file.write(rf"module matmat{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] b, output wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] mul);" + '\n')
         
         for i in range(n): #col
             for j in range(n): #row
@@ -77,7 +77,7 @@ def generate_matrix_matrix(dir, n, data_width, bin_pos):
                 
                 mul_map_list += [rf"w{i}{j}"]
                 
-                out_file.write(rf"vecvec{n} #(.DATA_WIDTH({data_width}), .VECTOR_SIZE({n})) v{j}{i}({row_map}, {col_map}, w{j}{i});" + '\n')
+                out_file.write(rf"vecvec{n} #(.DATA_WIDTH(DATA_WIDTH), .VECTOR_SIZE(MATRIX_SIZE), .BIN_POS(BIN_POS)) v{j}{i}({row_map}, {col_map}, w{j}{i});" + '\n')
         
         mul_map_list.reverse()
         
@@ -92,7 +92,7 @@ def generate_matrix_transpose(dir, n, data_width, bin_pos):
     n2 = n ** 2
     
     with open(dir + rf"/mattrans{n}.v", 'w') as out_file:
-        out_file.write(rf"module mattrans{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n2}) (input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] in, output wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] out);" + '\n')
+        out_file.write(rf"module mattrans{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] in, output wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] out);" + '\n')
         
         for i in range(n): #col
             for j in range(n): #row
@@ -115,7 +115,7 @@ def generate_matrix_determinant(dir, n, data_width, bin_pos):
     n_minus_1 = n - 1
     
     with open(dir + rf"/matdet{n}.v", 'w') as out_file:
-        out_file.write(rf"module matdet{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n2}) (input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [DATA_WIDTH-1:0] det);" + '\n')
+        out_file.write(rf"module matdet{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [DATA_WIDTH-1:0] det);" + '\n')
                
         out_file.write(r"wire [DATA_WIDTH-1:0] " + ", ".join([rf"w{x}" for x in range(n * 3 - 1)]) + ";" + '\n')
             
@@ -132,7 +132,7 @@ def generate_matrix_determinant(dir, n, data_width, bin_pos):
                     elements += rf"a[{min_bit}+:{data_width}], "
                     
             elements = elements[:-2] + "}"
-            out_file.write(rf"matdet{n_minus_1} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) md{i}({elements}, w{i});" + '\n')
+            out_file.write(rf"matdet{n_minus_1} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE-1)) md{i}({elements}, w{i});" + '\n')
 
         for i in range(n):
             i_plus_n = i + n
@@ -170,14 +170,16 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
     whole_bits = data_width - bin_pos
     
     with open(dir + rf"/matinv{n}.v", 'w') as out_file:
-        out_file.write(rf"module matinv{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n2}) (input wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [(MATRIX_SIZE * DATA_WIDTH) - 1:0] inv);" + '\n')
+        out_file.write(rf"module matinv{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] inv, output wire w_singular);" + '\n')
         
         out_file.write(rf"wire [DATA_WIDTH-1:0] wdet;" + '\n')
         out_file.write(rf"wire [DATA_WIDTH-1:0] wdetdiv;" + '\n')
         
-        out_file.write(rf"wire [(MATRIX_SIZE*DATA_WIDTH)-1:0] m_trans;" + '\n')
+        out_file.write(rf"assign w_singular = wdet == 0;" + '\n')
         
-        out_file.write(rf"matdet{n} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) mdet(a, wdet);" + '\n')
+        out_file.write(rf"wire [(MATRIX_SIZE*MATRIX_SIZE*DATA_WIDTH)-1:0] m_trans;" + '\n')
+        
+        out_file.write(rf"matdet{n} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE)) mdet(a, wdet);" + '\n')
                 
         out_file.write(r"div #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) d1 ({" + rf"{whole_bits}'b1, {bin_pos}'b0" + "}, wdet, wdetdiv);" + '\n')
         
@@ -190,7 +192,7 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
             
             out_file.write(r"assign m_trans = {a[0*DATA_WIDTH+:DATA_WIDTH], w2, w1, a[3*DATA_WIDTH+:DATA_WIDTH]};" + '\n')
             
-            out_file.write(rf"scalvecmat{n} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) svm1(wdetdiv, m_trans, inv);" + '\n')
+            out_file.write(rf"scalvec{n2} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .VECTOR_SIZE({n2})) svm1(wdetdiv, m_trans, inv);" + '\n')
             
             out_file.write(r"endmodule" + '\n')
             return
@@ -214,30 +216,34 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
                             indicies += [rf"a[{pos}*DATA_WIDTH+:DATA_WIDTH]"]
                             
                         pos += 1
+            
+                indicies.reverse()
         
                 sub_matrix = "{" + ",".join(indicies) + "}"
         
-                out_file.write(rf"matdet{n_minus_one} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m{i}{j}({sub_matrix}, w_min_{i}{j});" + '\n')
+                out_file.write(rf"matdet{n_minus_one} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE-1)) m{i}{j}({sub_matrix}, w_min_{i}{j});" + '\n')
                 
         pos = 0
         trans_list = []
         
         for i in range(n): # row
             for j in range(n): # col
-                if pos % 2 == 0: # even
+                if (-1)**j * (-1)**i == 1: # positive
                     out_file.write(rf"assign w_adj_{i}{j} = w_min_{i}{j};" + '\n')
                 else:
                     out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) s{pos}({data_width}'b0, w_min_{i}{j}, w_adj_{i}{j});" + '\n')
                 
-                trans_list += [rf"w_adj_{i}{j}"]
-                
                 pos += 1
+                
+        for i in range(n-1,-1,-1): # row
+            for j in range(n-1,-1,-1): # col
+                trans_list += [rf"w_adj_{j}{i}"]
                 
         trans = "{" + ",".join(trans_list) + "}"
             
         out_file.write(rf"assign m_trans={trans};" + '\n')
             
-        out_file.write(rf"scalvecmat{n} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) svm1(wdetdiv, m_trans, inv);" + '\n')
+        out_file.write(rf"scalvec{n2} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .VECTOR_SIZE({n2})) svm1(wdetdiv, m_trans, inv);" + '\n')
             
         out_file.write(r"endmodule" + '\n')
     
@@ -256,7 +262,7 @@ def main(dir, depth, data_width, bin_pos):
     shutil.copyfile("mul.v", dir + "/mul.v")
     shutil.copyfile("div.v", dir + "/div.v")
     
-    generate_scalar_vector_matrix(dir, depth, data_width, bin_pos)
+    generate_scalar_vector(dir, depth ** 2, data_width, bin_pos)
     generate_vector_vector(dir, depth, data_width, bin_pos)    
     generate_matrix_matrix(dir, depth, data_width, bin_pos)
     generate_matrix_transpose(dir, depth, data_width, bin_pos)
