@@ -21,18 +21,15 @@ def my_subprocess_run(command, print_stdout=True):
         
     return stdout
 
-def hex_to_dec(hex_in, width):
-    s_max = 2 ** (width - 1) - 1
-    u_max = 2 ** width
-    
+def hex_to_dec(hex_in, width, bin_pos):
     int_in = int(hex_in, 16)
     
-    if int_in > s_max:
-        int_in = -(u_max - int_in)
-        
-    return int_in
+    if int_in & 1 << (width-1): #Sign bit high
+        int_in = int_in - (1 << width) 
+    
+    return int_in / 2 ** bin_pos
 
-def generate_numpy_matrix_from_verilog_output(line, n, width):
+def generate_numpy_matrix_from_verilog_output(line, n, width, bin_pos):
     mat = line.split(":")[1][1:]
     
     step = width // 4
@@ -41,27 +38,33 @@ def generate_numpy_matrix_from_verilog_output(line, n, width):
     
     for row in range(n):
         for col in range(n):
-            #print(row, col)
             pos = (n - col - 1) * n + (n - row - 1)
             bit_slice = mat[pos * step:pos*step+step]
             
-            #print(mat, bit_slice)
-            val = hex_to_dec(bit_slice, width)
+            val = hex_to_dec(bit_slice, width, bin_pos)
             
             matrix[col,row] = val
     
     return matrix
 
-def main(wk_dir, n, width, count):
-    result = my_subprocess_run(["./gen_mat_operation.py", str(n), str(width)])
+def generate_numpy_scalar_from_verilog_output(line, width, bin_pos):
+    scal = line.split(":")[1][1:]
+    
+    val = hex_to_dec(scal, width, bin_pos)
+    
+    return val
 
+def np_scal_diff(m1, m2):
+    return ((m1 - m2) ** 2).mean() ** 0.5
 
+def main(wk_dir, n, width, bin_pos, count):
+    result = my_subprocess_run(["./gen_mat_operation.py", str(n), str(width), str(bin_pos)])
     for op in ["mul", "det", "trans", "inv"]:
         with open(rf"test_{op}.v", 'r') as test_file:
             with open(wk_dir + rf"/test_{op}.v", 'w') as copy_file:
                 buf = test_file.read()
                 py_seed = random.randrange(1024);
-                copy_file.write(buf.format(n=n, width=width, py_seed=py_seed, py_count=count))
+                copy_file.write(buf.format(n=n, width=width, bin_pos=bin_pos, py_seed=py_seed, py_count=count))
 
         os.chdir(wk_dir)
         
@@ -69,54 +72,134 @@ def main(wk_dir, n, width, count):
         my_subprocess_run(["iverilog", "-o", rf"test_{op}", rf"test_{op}.v"] +  ["matdet" + str(i+2) +".v" for i in range(n-1)] + ["mul.v", "div.v", "add.v", "sub.v"] + [rf"scalvecmat{n}.v", rf"mattrans{n}.v", rf"matinv{n}.v", rf"vecvec{n}.v", rf"matmat{n}.v"])
         result = my_subprocess_run(["vvp", rf"test_{op}"], False)
         
-        print(result)
-        
         os.chdir("..")
         
-        lines = result.split('\n')
+        lines = result.split('\n')[:-1]
         
-        try:
-            print(generate_numpy_matrix_from_verilog_output(lines[0], n, width))
-            print(generate_numpy_matrix_from_verilog_output(lines[1], n, width))
-            print(generate_numpy_matrix_from_verilog_output(lines[2], n, width))
-        except Exception:
-            pass
-    
-    return
-    ok_count = 0
-    runs = len(lines)//2
-    
-    for i in range(runs):
-        mat = lines[2*i][5:]
-        det = hex_to_dec(lines[2*i+1][5:])
+        i = 0
         
-        matrix = np.empty((n,n))
+        ok_count = 0
         
-        for row in range(n):
-            for col in range(n):
-                #print(row, col)
-                pos = (n - col - 1) * n + (n - row - 1)
-                bit_slice = mat[pos * step:pos*step+step]
+        while i < len(lines):
+            if op == "mul":
+                lhs = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
+                rhs = generate_numpy_matrix_from_verilog_output(lines[i + 1], n, width, bin_pos)
+                prod = generate_numpy_matrix_from_verilog_output(lines[i + 2], n, width, bin_pos)
                 
-                #print(mat, bit_slice)
-                val = hex_to_dec(bit_slice)
+                np_prod = lhs * rhs
                 
-                matrix[col,row] = val
-        
-        np_det_float = np.linalg.det(matrix)
-        np_det = int(round(np_det_float, 0))
-        
-        if np_det != det:
-            print(f"Not working? numpy: {np_det}, Icarus: {det}")
-            print("    Icarus matrix: " + mat)
-            print("    Parsed matrix:")
-            print("        " + str(matrix).replace("\n", "\n        "))
-            print("    Icarus determinant: " + str(det))
-            print("    Parsed matrix determinant: " + str(np_det_float))
-        else:
-            ok_count += 1
-    
-    print(f"{runs} runs, {ok_count} successful")
+                err = np_scal_diff(prod, np_prod)
+                
+                if abs(err) < 0.01:
+                    ok_count += 1
+                else:
+                    print(lines[i])
+                    print(lines[i+1])
+                    print(lines[i+2])
+                    
+                    print()
+                    
+                    print(lhs)
+                    print(rhs)
+                    print(prod)
+                    
+                    print()
+                    
+                    print(np_prod)
+                    
+                    print()
+                    
+                    print(err)
+                
+                i += 3
+            elif op == "det":
+                mat = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
+                det = generate_numpy_scalar_from_verilog_output(lines[i + 1], width, bin_pos)
+                
+                np_det = np.linalg.det(mat)
+                
+                err = np.abs(np_det - det)
+                
+                if abs(err) < 0.01:
+                    ok_count += 1
+                else:
+                    print(lines[i])
+                    print(lines[i+1])
+                    
+                    print()
+                    
+                    print(mat)
+                    print(det)
+                    
+                    print()
+                
+                    print(np_det)
+                    
+                    print()
+                    
+                    print(err)
+                
+                i += 2
+            elif op == "trans":
+                mat = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
+                trans = generate_numpy_matrix_from_verilog_output(lines[i + 1], n, width, bin_pos)
+                
+                np_trans = mat.T
+
+                err = np_scal_diff(trans, np_trans)
+                
+                if abs(err) < 0.01:
+                    ok_count += 1
+                else:
+                    print(lines[i])
+                    print(lines[i+1])
+                    
+                    print()
+                    
+                    print(mat)
+                    print(trans)
+                
+                    print()
+                    
+                    print(np_trans)
+                    
+                    print()
+                    
+                    print(err)
+                    
+                i += 2
+            elif op == "inv":
+                mat = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
+                inv = generate_numpy_matrix_from_verilog_output(lines[i + 1], n, width, bin_pos)
+                
+                np_inv = np.linalg.inv(mat)
+                
+                err = np_scal_diff(inv, np_inv)
+                
+                if abs(err) < 0.01:
+                    ok_count += 1
+                else:
+                    print(lines[i])
+                    print(lines[i+1])
+                    
+                    print()
+                    
+                    print(mat)
+                    print(inv)
+                    
+                    print()
+                
+                    print(np_inv)
+                    
+                    print()
+                    
+                    print(err)
+                    
+                i += 2
+                
+                
+        print(f"{op}: {count} runs, {ok_count} successful")
     
 if __name__ == "__main__":
-    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+    #n, width, bin_pos, count
+    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
