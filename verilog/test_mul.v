@@ -14,8 +14,8 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
     begin
         for (integer i = 0; i < MATRIX_SIZE*MATRIX_SIZE; i++)
         begin
-            matrix_a[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS;
-            matrix_b[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS;
+            matrix_a[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+            matrix_b[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
         end
             
         #1;

@@ -14,7 +14,7 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
     begin
         for (integer i = 0; i < MATRIX_SIZE*MATRIX_SIZE; i++)
         begin
-            matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS;
+            matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS; // Golub and von Loam
         end
 
         #1;
