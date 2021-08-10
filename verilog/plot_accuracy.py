@@ -1,14 +1,39 @@
 #!/usr/bin/env python3 
 
+import validator
 import matplotlib.pyplot as plt
+import numpy as np
 
-x = [4,8,12,16,20,24,28,32,36,40,44,48,52,56,60,64]
+STEP = 4
 
-y = [1.0352833246789994, 1.7927411629562442, 2.129810058326357, 3.3838204050477168, 2.749557182850362, 0.4131140934672784, 0.02700423620370842, 0.0025967424868147517, 0.0010082490211817756, 0.0002195603292386667, 0.000030201592956330495, 0.000009833686604009004, 0.000000095969483593566, 0.0000010976442989694257, 0.00000015924780306235544, 0.00000003454843335943255]
+matrix_size = 4
+max_integer_width = 32
+max_decimal_width = 64
 
-plt.plot(x,y)
-plt.grid(True)
-plt.xlabel("Width of data (binary point at the half way mark)")
-plt.ylabel("2 norm of the difference between verilog and numpy output")
-plt.semilogy()
+int_widths = list(range(STEP, max_integer_width + STEP, STEP))
+dec_widths = list(range(STEP, max_decimal_width + STEP, STEP))
+
+nx = len(int_widths)
+ny = len(dec_widths)
+
+xv, yv = np.meshgrid(int_widths, dec_widths, sparse=False, indexing='xy')
+
+results = np.empty((ny, nx))
+
+for i in range(nx):
+    for j in range(ny):
+        avg_err_log = np.log(validator.main("src", matrix_size, int(xv[j, i] + yv[j, i]), int(yv[j, i]), 10, ["inv"]))
+
+        results[j, i] = avg_err_log
+
+fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+
+print(xv)
+print(yv)
+print(results)
+
+ax.plot_surface(xv, yv, results)
+plt.xlabel("Integer width (bits)")
+plt.ylabel("Decimal width (bits)")
+
 plt.show()

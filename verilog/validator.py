@@ -24,7 +24,7 @@ def my_subprocess_run(command, print_stdout=True):
 def hex_to_dec(hex_in, width, bin_pos):
     int_in = int(hex_in, 16)
     
-    if int_in & 1 << (width-1): #Sign bit high
+    if int_in & (1 << (width-1)): #Sign bit high
         int_in = int_in - (1 << width) 
         
     return int_in / (2 ** bin_pos)
@@ -57,12 +57,12 @@ def generate_numpy_scalar_from_verilog_output(line, width, bin_pos):
 def np_scal_diff(m1, m2):
     return ((m1 - m2) ** 2).mean() ** 0.5
 
-def main(wk_dir, n, width, bin_pos, count):
+def main(wk_dir, n, width, bin_pos, count, ops):
     result = my_subprocess_run(["./gen_mat_operation.py", str(n), str(width), str(bin_pos)])
     
     n2 = n**2
     
-    for op in ["mul", "det", "trans", "inv"]:
+    for op in ops:
         with open(rf"test_{op}.v", 'r') as test_file:
             with open(wk_dir + rf"/test_{op}.v", 'w') as copy_file:
                 buf = test_file.read()
@@ -212,9 +212,11 @@ def main(wk_dir, n, width, bin_pos, count):
                 
                 
         avg_err = total_err / count
-                
+        
+        return avg_err
+        
         print(f"{op}: {count} runs, {ok_count} successful. Average error: {avg_err}")
     
 if __name__ == "__main__":
     #n, width, bin_pos, count
-    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
+    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["mul", "det", "trans", "inv"])
