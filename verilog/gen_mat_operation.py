@@ -66,7 +66,7 @@ def generate_matrix_matrix(dir, n, data_width, bin_pos):
         
         for i in range(n): #col
             for j in range(n): #row
-                out_file.write(rf"wire [DATA_WIDTH-1:0] w{j}{i};" + '\n')
+                out_file.write(rf"wire [DATA_WIDTH-1:0] w{j}_{i};" + '\n')
         
         mul_map_list = []
         
@@ -75,9 +75,9 @@ def generate_matrix_matrix(dir, n, data_width, bin_pos):
                 row_map = "{" + ",".join(["a[" + str(j * n + x) + "*DATA_WIDTH+:DATA_WIDTH]" for x in range(n)]) + "}"
                 col_map = "{" + ",".join(["b[" + str(i + n * x) + "*DATA_WIDTH+:DATA_WIDTH]" for x in range(n)]) + "}"
                 
-                mul_map_list += [rf"w{i}{j}"]
+                mul_map_list += [rf"w{i}_{j}"]
                 
-                out_file.write(rf"vecvec{n} #(.DATA_WIDTH(DATA_WIDTH), .VECTOR_SIZE(MATRIX_SIZE), .BIN_POS(BIN_POS)) v{j}{i}({row_map}, {col_map}, w{j}{i});" + '\n')
+                out_file.write(rf"vecvec{n} #(.DATA_WIDTH(DATA_WIDTH), .VECTOR_SIZE(MATRIX_SIZE), .BIN_POS(BIN_POS)) v{j}{i}({row_map}, {col_map}, w{j}_{i});" + '\n')
         
         mul_map_list.reverse()
         
@@ -200,8 +200,8 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
         
         for i in range(n): # row
             for j in range(n): # col
-                out_file.write(rf"wire [DATA_WIDTH-1:0] w_min_{i}{j};" + '\n')
-                out_file.write(rf"wire [DATA_WIDTH-1:0] w_adj_{i}{j};" + '\n')
+                out_file.write(rf"wire [DATA_WIDTH-1:0] w_min_{i}_{j};" + '\n')
+                out_file.write(rf"wire [DATA_WIDTH-1:0] w_adj_{i}_{j};" + '\n')
                 
                 
         for i in range(n): # row
@@ -221,7 +221,7 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
         
                 sub_matrix = "{" + ",".join(indicies) + "}"
         
-                out_file.write(rf"matdet{n_minus_one} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE-1)) m{i}{j}({sub_matrix}, w_min_{i}{j});" + '\n')
+                out_file.write(rf"matdet{n_minus_one} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE-1)) m{i}_{j}({sub_matrix}, w_min_{i}_{j});" + '\n')
                 
         pos = 0
         trans_list = []
@@ -229,15 +229,15 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
         for i in range(n): # row
             for j in range(n): # col
                 if (-1)**j * (-1)**i == 1: # positive
-                    out_file.write(rf"assign w_adj_{i}{j} = w_min_{i}{j};" + '\n')
+                    out_file.write(rf"assign w_adj_{i}_{j} = w_min_{i}_{j};" + '\n')
                 else:
-                    out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) s{pos}({data_width}'b0, w_min_{i}{j}, w_adj_{i}{j});" + '\n')
+                    out_file.write(rf"sub #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) s{pos}({data_width}'b0, w_min_{i}_{j}, w_adj_{i}_{j});" + '\n')
                 
                 pos += 1
                 
         for i in range(n-1,-1,-1): # row
             for j in range(n-1,-1,-1): # col
-                trans_list += [rf"w_adj_{j}{i}"]
+                trans_list += [rf"w_adj_{j}_{i}"]
                 
         trans = "{" + ",".join(trans_list) + "}"
             
