@@ -8,5 +8,5 @@ module matdet2 #(parameter DATA_WIDTH=0, parameter BIN_POS=0, parameter MATRIX_S
     mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m2(a[1*DATA_WIDTH+:DATA_WIDTH], a[2*DATA_WIDTH+:DATA_WIDTH], w2);
     
     //ad - bc
-    sub #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) s1(w1, w2, det);
+    assign det = w1 - w2;
 endmodule
