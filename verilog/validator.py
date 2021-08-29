@@ -68,8 +68,7 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
 
     os.chdir(wk_dir)
     
-    
-    my_subprocess_run(["iverilog", "-o", rf"test_{op}", rf"test_{op}.v"] +  ["matdet" + str(i+2) +".v" for i in range(n-1)] + ["mul.v", "div.v"] + [rf"scalvec{n2}.v", rf"mattrans{n}.v", rf"matinv{n}.v", rf"vecvec{n}.v", rf"matmat{n}.v"])
+    my_subprocess_run(["iverilog", "-o", rf"test_{op}", rf"test_{op}.v"] +  ["matdet" + str(i+2) +".v" for i in range(n-1)] + ["mul.v", "div.v"] + [rf"scalvec{n2}.v", rf"mattrans{n}.v", rf"vecvec{n}.v", rf"matmat{n}.v", rf"matinv{n}.v"])
     result = my_subprocess_run(["vvp", rf"test_{op}"], False)
     
     os.chdir("..")
