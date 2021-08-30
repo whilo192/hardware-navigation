@@ -6,7 +6,7 @@ module matdet2 #(parameter DATA_WIDTH=1, parameter BIN_POS=1, parameter MATRIX_S
     
     reg [DATA_WIDTH-1:0] count = 0;
     
-    mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m1(r_mul_lhs, r_mul_rhs, w_out);
+    mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m1(clk, r_mul_lhs, r_mul_rhs, w_out);
     
     always @(posedge clk or posedge rst)
     begin
@@ -17,19 +17,21 @@ module matdet2 #(parameter DATA_WIDTH=1, parameter BIN_POS=1, parameter MATRIX_S
             r_mul_lhs = 0;
             r_mul_rhs = 0;
         end
-        else if (count == 0)
+        if (count == 0)
         begin
             r_mul_lhs = a[0*DATA_WIDTH+:DATA_WIDTH];
             r_mul_rhs = a[3*DATA_WIDTH+:DATA_WIDTH];
-            #1
-            det = w_out;
             count += 1;
         end
         else if (count == 1)
         begin
             r_mul_lhs = a[1*DATA_WIDTH+:DATA_WIDTH];
             r_mul_rhs = a[2*DATA_WIDTH+:DATA_WIDTH];
-            #1
+            det = w_out;
+            count += 1;
+        end
+        else if (count == 2)
+        begin
             det -= w_out;
             complete = 1;
             count += 1;
