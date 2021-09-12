@@ -29,6 +29,23 @@ def hex_to_dec(hex_in, width, bin_pos):
         
     return int_in / (2 ** bin_pos)
 
+def generate_numpy_vector_from_verilog_output(line, n, width, bin_pos):
+    mat = line.split(":")[1][1:]
+    
+    step = width // 4
+    
+    matrix = np.empty((n,1))
+    
+    for row in range(n):
+        pos = n - row - 1
+        bit_slice = mat[pos * step:pos*step+step]
+        
+        val = hex_to_dec(bit_slice, width, bin_pos)
+        
+        matrix[row,0] = val
+    
+    return matrix
+
 def generate_numpy_matrix_from_verilog_output(line, n, width, bin_pos):
     mat = line.split(":")[1][1:]
     
@@ -73,7 +90,7 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
     
     os.chdir("..")
     
-    lines = result.split('\n')[:-1]
+    lines = result.split('\n')[1:-1] # Trim line about VCD output
     
     i = 0
     
@@ -82,6 +99,36 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
     total_err = 0
     
     while i < len(lines):
+        if op == "dot":
+            lhs = generate_numpy_vector_from_verilog_output(lines[i], n, width, bin_pos)
+            rhs = generate_numpy_vector_from_verilog_output(lines[i + 1], n, width, bin_pos)
+            dot = generate_numpy_scalar_from_verilog_output(lines[i + 2], width, bin_pos)
+            
+            np_dot = np.matmul(lhs.T, rhs)[0,0]
+            
+            err = np.abs(dot - np_dot)
+            if err < 0.01:
+                ok_count += 1
+            else:
+                print(lines[i])
+                print(lines[i+1])
+                print(lines[i+2])
+                
+                print()
+                
+                print(lhs)
+                print(rhs)
+                print(dot)
+                
+                print()
+                
+                print(np_dot)
+                
+                print()
+                
+                print(err)
+            
+            i += 3
         if op == "mul":
             lhs = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
             rhs = generate_numpy_matrix_from_verilog_output(lines[i + 1], n, width, bin_pos)
@@ -227,4 +274,4 @@ def main(wk_dir, n, width, bin_pos, count, ops):
     
 if __name__ == "__main__":
     #n, width, bin_pos, count
-    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["mul", "det", "trans", "inv"])
+    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["dot", "mul", "det", "trans", "inv"])

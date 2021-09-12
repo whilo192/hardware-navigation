@@ -6,14 +6,17 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
     reg clk = 0;
     reg rst = 0;
     wire complete;
+    wire ready;
     
-    matdet{n} #(.DATA_WIDTH(WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE)) m1(clk, rst, complete, matrix, det);
+    matdet{n} #(.DATA_WIDTH(WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE)) m1(clk, rst, ready, complete, matrix, det);
     
     integer count = 0;
     integer seed = {py_seed};
     
     initial
     begin
+        $dumpfile("test_det_waveform.vcd");
+        $dumpvars(0, test);
         for (integer i = 0; i < MATRIX_SIZE*MATRIX_SIZE; i++)
         begin
             matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
@@ -26,7 +29,12 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
     
         #1;
 
-        if (complete)
+        if (ready)
+        begin
+            rst = 0;
+        end
+        
+        if (complete && !rst)
         begin
             $display("mat: %h", matrix);
             $display("det: %h", det);
@@ -44,17 +52,6 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
             begin
                 matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
             end
-            
-            clk = ~clk;
-            #1
-            clk = ~clk;
-            #1
-            clk = ~clk;
-            #1
-            clk = ~clk;
-            #1
-            
-            rst = 0;
         end
     end
 endmodule

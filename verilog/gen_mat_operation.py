@@ -4,160 +4,197 @@ import os
 import sys
 import shutil
 
+current_indent = 0
+
+def verilog_write(fd, line):
+    global current_indent
+    
+    if line == "end":
+        current_indent -= 1
+    elif line == "endmodule":
+        current_indent -= 1
+    
+    fd.write((" " * (4 * current_indent)) + line)
+    fd.write('\n')
+    
+    if line == "begin":
+        current_indent += 1
+    elif line.startswith("module"):
+        current_indent += 1
+
 def generate_scalar_vector(dir, n, data_width, bin_pos):
     n2 = n ** 2
     
     with open(dir + rf"/scalvec{n}.v", 'w') as out_file:
-        out_file.write(rf"module scalvec{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter VECTOR_SIZE={n}) (input wire clk, input wire [DATA_WIDTH - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] scale);" + '\n')
+        verilog_write(out_file, rf"module scalvec{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter VECTOR_SIZE={n}) (input wire clk, input wire [DATA_WIDTH - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] scale);")
         
         empty_bits = (n**2-1) * data_width
         
         for i in range(n2):
-            out_file.write(rf"wire [DATA_WIDTH-1:0] w{i};" + '\n')
+            verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w{i};")
             
         for i in range(n2):
             i_str = rf"{i}*DATA_WIDTH+:DATA_WIDTH"
-            out_file.write(rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m{i}(clk, a, b[{i_str}], w{i});" + "\n")
+            verilog_write(out_file, rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m{i}(clk, a, b[{i_str}], w{i});" + "\n")
         
-        out_file.write(rf"assign scale = " + "{" + ",".join([rf"w{i}" for i in range(n2-1,-1,-1)]) + "};" + '\n')
+        verilog_write(out_file, rf"assign scale = " + "{" + ",".join([rf"w{i}" for i in range(n2-1,-1,-1)]) + "};")
         
-        out_file.write(rf"endmodule" + '\n')
+        verilog_write(out_file, rf"endmodule")
 
 def generate_vector_vector(dir, n, data_width, bin_pos):
     with open(dir + rf"/vecvec{n}.v", 'w') as out_file:
-        out_file.write(rf"module vecvec{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter VECTOR_SIZE={n}) (input wire clk, input wire rst, output reg complete = 0, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output reg [DATA_WIDTH - 1:0] dot = 0);" + '\n')
+        verilog_write(out_file, rf"module vecvec{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter VECTOR_SIZE={n}) (input wire clk, input wire rst, output reg ready = 1, output reg complete = 0, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output reg [DATA_WIDTH - 1:0] dot = 0);")
         
-        out_file.write(rf"reg [DATA_WIDTH-1:0] count = 0;"+ '\n')
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] count = 0;")
         
-        out_file.write(rf"reg [DATA_WIDTH-1:0] r_mul_lhs = 0;" + '\n')
-        out_file.write(rf"reg [DATA_WIDTH-1:0] r_mul_rhs = 0;" + '\n')
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] r_mul_lhs = 0;")
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] r_mul_rhs = 0;")
         
-        out_file.write(rf"wire [DATA_WIDTH-1:0] w_mul_out;" + '\n')
-        out_file.write(rf"wire [DATA_WIDTH-1:0] w_add_out;" + '\n')
+        verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w_mul_out;")
+        verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w_add_out;")
         
-        out_file.write(rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m1(clk, r_mul_lhs, r_mul_rhs, w_mul_out);" + '\n')
+        verilog_write(out_file, rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m1(clk, r_mul_lhs, r_mul_rhs, w_mul_out);")
         
-        out_file.write(rf"always @(posedge clk or posedge rst)" + '\n')
-        out_file.write(rf"begin" + '\n')
+        verilog_write(out_file, rf"always @(posedge clk)")
+        verilog_write(out_file, rf"begin")
         
-        out_file.write(rf"if (rst)" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"count = 0;" + '\n')
-        out_file.write(rf"dot = 0;" + '\n')
-        out_file.write(rf"complete = 0;" + '\n')
-        out_file.write(rf"r_mul_lhs = 0;" + '\n')
-        out_file.write(rf"r_mul_rhs = 0;" + '\n')
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"else" + '\n')
-        out_file.write(rf"begin" + '\n')
+        verilog_write(out_file, rf"if (rst)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"ready = 1;")
+        verilog_write(out_file, rf"count = 0;")
+        verilog_write(out_file, rf"dot = 0;")
+        verilog_write(out_file, rf"complete = 0;")
+        verilog_write(out_file, rf"r_mul_lhs = 0;")
+        verilog_write(out_file, rf"r_mul_rhs = 0;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"ready = 0;")
         for i in range(n+1):
-            out_file.write(("else " if i > 0 else "") + rf"if (count == {i})" + '\n')
-            out_file.write(rf"begin" + '\n')
-            
-            out_file.write(rf"r_mul_lhs = a[{i}*DATA_WIDTH+:DATA_WIDTH];" + '\n')
-            out_file.write(rf"r_mul_rhs = b[{i}*DATA_WIDTH+:DATA_WIDTH];" + '\n')
+            two_i = 2 * i
+            two_i_plus_1 = 2 * i + 1
+            verilog_write(out_file, ("else " if i > 0 else "") + rf"if (count == {two_i})")
+            verilog_write(out_file, rf"begin")
             
             if i > 0:
-                out_file.write(rf"dot += w_mul_out;" + '\n')
+                verilog_write(out_file, rf"dot += w_mul_out;")
             
             if i == n:
-                out_file.write(rf"complete = 1;" + '\n')
-                
-            out_file.write(rf"count += 1;" + '\n')
+                verilog_write(out_file, rf"complete = 1;")
+            else:
+                verilog_write(out_file, rf"r_mul_lhs = a[{i}*DATA_WIDTH+:DATA_WIDTH];")
+                verilog_write(out_file, rf"r_mul_rhs = b[{i}*DATA_WIDTH+:DATA_WIDTH];")
             
-            out_file.write(rf"end" + '\n')
+            verilog_write(out_file, rf"count += 1;")
             
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"end" + '\n')
+            verilog_write(out_file, rf"end")
+            verilog_write(out_file, rf"else if (count == {two_i_plus_1})")
+            verilog_write(out_file, rf"begin")
+            verilog_write(out_file, rf"count += 1;")
+            verilog_write(out_file, rf"end")
+            
+            
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
         
-        out_file.write(rf"endmodule" + '\n')
+        verilog_write(out_file, rf"endmodule")
 
 def generate_matrix_matrix(dir, n, data_width, bin_pos):
     n2 = n ** 2
     
+    def gen_row_col_map(j, i):
+        row_map = "{" + ",".join(["a[" + str(j * n + x) + "*DATA_WIDTH+:DATA_WIDTH]" for x in range(n)]) + "}"
+        col_map = "{" + ",".join(["b[" + str(i + n * x) + "*DATA_WIDTH+:DATA_WIDTH]" for x in range(n)]) + "}"
+        
+        return (row_map, col_map)
+    
     with open(dir + rf"/matmat{n}.v", 'w') as out_file:
-        out_file.write(rf"module matmat{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire clk, input wire rst, output reg complete = 0, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] b, output reg [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] mul = 0);" + '\n')
+        verilog_write(out_file, rf"module matmat{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire clk, input wire rst, output reg ready = 1, output reg complete = 0, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] b, output reg [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] mul = 0);")
         
-        out_file.write(rf"reg [DATA_WIDTH-1:0] count = 0;"+ '\n')
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] count = 0;")
         
-        out_file.write(rf"wire subcomplete;"+ '\n')
-        out_file.write(rf"reg subrst;"+ '\n')
+        verilog_write(out_file, rf"wire subcomplete;")
+        verilog_write(out_file, rf"wire subready;")
+        verilog_write(out_file, rf"reg subrst = 0;")
         
-        out_file.write(rf"reg [MATRIX_SIZE * DATA_WIDTH - 1:0] r_lhs = 0;" + '\n')
-        out_file.write(rf"reg [MATRIX_SIZE * DATA_WIDTH - 1:0] r_rhs = 0;" + '\n')
+        verilog_write(out_file, rf"reg [MATRIX_SIZE * DATA_WIDTH - 1:0] r_lhs = 0;")
+        verilog_write(out_file, rf"reg [MATRIX_SIZE * DATA_WIDTH - 1:0] r_rhs = 0;")
         
-        out_file.write(rf"wire [DATA_WIDTH-1:0] w_out;" + '\n')
+        verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w_out;")
         
-        out_file.write(rf"vecvec{n} #(.DATA_WIDTH(DATA_WIDTH), .VECTOR_SIZE(MATRIX_SIZE), .BIN_POS(BIN_POS)) v1(clk, subrst | rst, subcomplete, r_lhs, r_rhs, w_out);" + '\n')
+        verilog_write(out_file, rf"vecvec{n} #(.DATA_WIDTH(DATA_WIDTH), .VECTOR_SIZE(MATRIX_SIZE), .BIN_POS(BIN_POS)) v1(clk, subrst | rst, subready, subcomplete, r_lhs, r_rhs, w_out);")
         
         count = 0
         
-        out_file.write(rf"always @(posedge clk or posedge rst)" + '\n')
-        out_file.write(rf"begin" + '\n')
+        verilog_write(out_file, rf"always @(posedge clk)")
+        verilog_write(out_file, rf"begin")
         
-        out_file.write(rf"if (rst)" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"count = 0;" + '\n')
-        out_file.write(rf"complete = 0;" + '\n')
-        out_file.write(rf"subrst = 0;" + '\n')
-        out_file.write(rf"r_lhs = 0;" + '\n')
-        out_file.write(rf"r_rhs = 0;" + '\n')
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"else" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"if (subrst)" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"subrst = 0;" + '\n')
-        out_file.write(rf"end" + '\n')
+        (row_map, col_map) = gen_row_col_map(0, 0)
+        
+        verilog_write(out_file, rf"if (rst)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"count = 0;")
+        verilog_write(out_file, rf"ready = 1;")
+        verilog_write(out_file, rf"complete = 0;")
+        verilog_write(out_file, rf"subrst = 0;")
+        verilog_write(out_file, rf"r_lhs = {row_map};")
+        verilog_write(out_file, rf"r_rhs = {col_map};")
+        verilog_write(out_file, rf"mul = 0;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else if (subrst && subready)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"subrst = 0;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else if (!subrst)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"ready = 0;")
         
         for i in range(n): #col
             for j in range(n): #row
-                row_map = "{" + ",".join(["a[" + str(j * n + x) + "*DATA_WIDTH+:DATA_WIDTH]" for x in range(n)]) + "}"
-                col_map = "{" + ",".join(["b[" + str(i + n * x) + "*DATA_WIDTH+:DATA_WIDTH]" for x in range(n)]) + "}"
+                (row_map, col_map) = gen_row_col_map(j, i)
                 
                 mat_count = j * n + i
                 
-                out_file.write(("else " if count != 0 else "") +  rf"if (count == {count})" + '\n')
-                out_file.write(rf"begin" + '\n')
+                verilog_write(out_file, ("else " if count != 0 else "") +  rf"if (count == {count})")
+                verilog_write(out_file, rf"begin")
                                
-                out_file.write(rf"if (subcomplete)" + '\n')
-                out_file.write(rf"begin" + '\n')
-                out_file.write(rf"mul[{mat_count}*DATA_WIDTH+:DATA_WIDTH] = w_out;" + '\n')
-                out_file.write(rf"subrst = 1;" + '\n')
-                out_file.write(rf"count += 1;" + '\n')
-                
-                out_file.write(rf"end" + '\n')
-                
-                out_file.write(rf"r_lhs = {row_map};" + '\n')
-                out_file.write(rf"r_rhs = {col_map};" + '\n')
-                
-                out_file.write(rf"end" + '\n')
+                verilog_write(out_file, rf"r_lhs = {row_map};")
+                verilog_write(out_file, rf"r_rhs = {col_map};")
+                               
+                verilog_write(out_file, rf"if (subcomplete)")
+                verilog_write(out_file, rf"begin")
+                verilog_write(out_file, rf"mul[{mat_count}*DATA_WIDTH+:DATA_WIDTH] = w_out;")
+                verilog_write(out_file, rf"subrst = 1;")
+                verilog_write(out_file, rf"count += 1;")
+
+                verilog_write(out_file, rf"end")
+                verilog_write(out_file, rf"end")
                 
                 count += 1
         
-        out_file.write(rf"else if (count == {count} && subcomplete)" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"complete = 1;" + '\n')
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"end" + '\n')
+        verilog_write(out_file, rf"else if (count == {count} && subcomplete)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"complete = 1;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
                 
-        out_file.write(rf"endmodule" + '\n')
+        verilog_write(out_file, rf"endmodule")
 
 
 def generate_matrix_transpose(dir, n, data_width, bin_pos):
     n2 = n ** 2
     
     with open(dir + rf"/mattrans{n}.v", 'w') as out_file:
-        out_file.write(rf"module mattrans{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] in, output wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] out);" + '\n')
+        verilog_write(out_file, rf"module mattrans{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] in, output wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] out);")
         
         for i in range(n): #col
             for j in range(n): #row
                 in_pos = j * n + i
                 out_pos = i * n + j
-                out_file.write(rf"assign out[{out_pos}*DATA_WIDTH+:DATA_WIDTH] = in[{in_pos}*DATA_WIDTH+:DATA_WIDTH];" + '\n')
+                verilog_write(out_file, rf"assign out[{out_pos}*DATA_WIDTH+:DATA_WIDTH] = in[{in_pos}*DATA_WIDTH+:DATA_WIDTH];")
                 
-        out_file.write(rf"endmodule" + '\n')
+        verilog_write(out_file, rf"endmodule")
 
 def generate_matrix_determinant(dir, n, data_width, bin_pos):   
     if n <= 2:
@@ -167,82 +204,93 @@ def generate_matrix_determinant(dir, n, data_width, bin_pos):
     
     n_minus_1 = n - 1
     
+    def gen_elements(i):
+        elements = "{"
+        
+        non_column_nums = [x for x in range(n) if x != i]
+        
+        for j in range(len(non_column_nums)): #row
+            for k in non_column_nums: #column
+                index = (j + 1) * n + k
+                
+                elements += rf"a[{index}*DATA_WIDTH+:DATA_WIDTH], "
+                
+        elements = elements[:-2] + "}"
+        
+        return elements
+    
     with open(dir + rf"/matdet{n}.v", 'w') as out_file:
-        out_file.write(rf"module matdet{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire clk, input wire rst, output reg complete = 0, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output reg [DATA_WIDTH-1:0] det = 0);" + '\n')
+        verilog_write(out_file, rf"module matdet{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire clk, input wire rst, output reg ready = 1, output reg complete = 0, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output reg [DATA_WIDTH-1:0] det = 0);")
         
-        out_file.write(rf"reg [(MATRIX_SIZE-1) * (MATRIX_SIZE-1) * DATA_WIDTH - 1:0] r_md_in = 0;" + '\n')
-        out_file.write(rf"reg [DATA_WIDTH - 1:0] r_val_in = 0;" + '\n')
+        verilog_write(out_file, rf"reg [(MATRIX_SIZE-1) * (MATRIX_SIZE-1) * DATA_WIDTH - 1:0] r_md_in = 0;")
+        verilog_write(out_file, rf"reg [DATA_WIDTH - 1:0] r_val_in = 0;")
         
-        out_file.write(rf"wire [DATA_WIDTH-1:0] w_md;" + '\n')
-        out_file.write(rf"wire [DATA_WIDTH-1:0] w_out;" + '\n')
+        verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w_md;")
+        verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w_out;")
         
-        out_file.write(rf"reg [DATA_WIDTH-1:0] count = 0;" + '\n')
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] count = 0;")
         
-        out_file.write(rf"reg subrst = 0;" + '\n')
+        verilog_write(out_file, rf"reg subrst = 0;")
         
-        out_file.write(rf"wire subcomplete;" + '\n')
+        verilog_write(out_file, rf"wire subcomplete;")
+        verilog_write(out_file, rf"wire subready;")
         
-        out_file.write(rf"matdet{n_minus_1} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE-1)) md(clk, subrst | rst, subcomplete, r_md_in, w_md);" + '\n')
-        out_file.write(rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m1(clk, r_val_in, w_md, w_out);" + '\n')
+        verilog_write(out_file, rf"matdet{n_minus_1} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE-1)) md(clk, subrst | rst, subready, subcomplete, r_md_in, w_md);")
+        verilog_write(out_file, rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m1(clk, r_val_in, w_md, w_out);")
             
-        out_file.write(rf"always @(posedge clk or posedge rst)" + '\n')
-        out_file.write(rf"begin" + '\n')
+        verilog_write(out_file, rf"always @(posedge clk)")
+        verilog_write(out_file, rf"begin")
         
-        out_file.write(rf"if (rst)" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"count = 0;" + '\n')
-        out_file.write(rf"complete = 0;" + '\n')
-        out_file.write(rf"subrst = 0;" + '\n')
-        out_file.write(rf"r_md_in = 0;" + '\n')
-        out_file.write(rf"r_val_in = 0;" + '\n')
-        out_file.write(rf"det = 0;" + '\n')
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"else" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"if (subrst)" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"subrst = 0;" + '\n')
-        out_file.write(rf"end" + '\n')
+        elements = gen_elements(0)
+        
+        verilog_write(out_file, rf"if (rst)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"count = 0;")
+        verilog_write(out_file, rf"ready = 1;")
+        verilog_write(out_file, rf"complete = 0;")
+        verilog_write(out_file, rf"subrst = 0;")
+        verilog_write(out_file, rf"r_md_in = {elements};")
+        verilog_write(out_file, rf"r_val_in = a[0+:DATA_WIDTH];;")
+        verilog_write(out_file, rf"det = 0;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else if (subrst && subready)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"subrst = 0;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else if (!subrst)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"ready = 0;")
             
         for i in range(n): #Column i
-            elements = "{"
-            
-            non_column_nums = [x for x in range(n) if x != i]
-            
-            for j in range(len(non_column_nums)): #row
-                for k in non_column_nums: #column
-                    index = (j + 1) * n + k
-                    
-                    elements += rf"a[{index}*DATA_WIDTH+:DATA_WIDTH], "
-                    
-            elements = elements[:-2] + "}"
+            elements = gen_elements(i)
             
             op_str = "" if i == 0 else ("+" if i % 2 == 0 else "-")
             
-            out_file.write(("else " if i != 0 else "") +  rf"if (count == {i})" + '\n')
-            out_file.write(rf"begin" + '\n')
+            verilog_write(out_file, ("else " if i != 0 else "") +  rf"if (count == {i})")
+            verilog_write(out_file, rf"begin")
             
-            out_file.write(rf"if (subcomplete)" + '\n')
-            out_file.write(rf"begin" + '\n')
-            out_file.write(rf"det {op_str}= w_out;" + '\n')
-            out_file.write(rf"subrst = 1;" + '\n')
-            out_file.write(rf"count += 1;" + '\n')
+            verilog_write(out_file, rf"if (subcomplete)")
+            verilog_write(out_file, rf"begin")
+            verilog_write(out_file, rf"det {op_str}= w_out;")
+            verilog_write(out_file, rf"subrst = 1;")
+            verilog_write(out_file, rf"count += 1;")
             
-            out_file.write(rf"end" + '\n')
+            verilog_write(out_file, rf"end")
             
-            out_file.write(rf"r_md_in = {elements};" + '\n')
-            out_file.write(rf"r_val_in = a[{i}*DATA_WIDTH+:DATA_WIDTH];" + '\n')
+            verilog_write(out_file, rf"r_md_in = {elements};")
+            verilog_write(out_file, rf"r_val_in = a[{i}*DATA_WIDTH+:DATA_WIDTH];")
             
-            out_file.write(rf"end" + '\n')
+            verilog_write(out_file, rf"end")
 
-        out_file.write(rf"else if (count == {n} && subcomplete)" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"complete = 1;" + '\n')
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"end" + '\n')
+        verilog_write(out_file, rf"else if (count == {n} && subcomplete)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"complete = 1;")
+        verilog_write(out_file, rf"count += 1;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
 
-        out_file.write(r"endmodule" + '\n')
+        verilog_write(out_file, r"endmodule")
 
 def generate_matrix_inverse(dir, n, data_width, bin_pos):
     n_minus_one = n-1
@@ -252,47 +300,50 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
     whole_bits = data_width - bin_pos
     
     with open(dir + rf"/matinv{n}.v", 'w') as out_file:     
-        out_file.write(rf"module matinv{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire clk, input wire rst, output reg complete, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] inv, output wire w_singular);" + '\n')
+        verilog_write(out_file, rf"module matinv{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire clk, input wire rst, output reg ready = 1, output reg complete = 0, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] inv, output wire w_singular);")
         
-        out_file.write(rf"wire [DATA_WIDTH-1:0] wdet;" + '\n')
-        out_file.write(rf"wire [DATA_WIDTH-1:0] wdetdiv;" + '\n')
+        verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] wdet;")
+        verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] wdetdiv;")
         
-        out_file.write(rf"matdet{n} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE)) mdet(clk, rst, mdet_complete, a, wdet);" + '\n')
+        verilog_write(out_file, rf"matdet{n} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE)) mdet(clk, rst, mdet_ready, mdet_complete, a, wdet);")
         
-        out_file.write(r"div #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) d1 (clk, {" + rf"{whole_bits}'b1, {bin_pos}'b0" + "}, wdet, wdetdiv);" + '\n')
+        verilog_write(out_file, r"div #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) d1 (clk, {" + rf"{whole_bits}'b1, {bin_pos}'b0" + "}, wdet, wdetdiv);")
         
-        out_file.write(rf"scalvec{n2} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .VECTOR_SIZE(MATRIX_SIZE * MATRIX_SIZE)) svm1(clk, wdetdiv, m_trans, inv);" + '\n')
+        verilog_write(out_file, rf"scalvec{n2} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .VECTOR_SIZE(MATRIX_SIZE * MATRIX_SIZE)) svm1(clk, wdetdiv, m_trans, inv);")
         
-        out_file.write(rf"assign w_singular = wdet == 0;" + '\n')
+        verilog_write(out_file, rf"assign w_singular = wdet == 0;")
             
-        out_file.write(rf"wire [(MATRIX_SIZE*MATRIX_SIZE*DATA_WIDTH)-1:0] m_trans;" + '\n')
+        verilog_write(out_file, rf"wire [(MATRIX_SIZE*MATRIX_SIZE*DATA_WIDTH)-1:0] m_trans;")
         
-        out_file.write(rf"reg [DATA_WIDTH-1:0] count = 0;" + '\n')
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] count = 0;")
     
-        out_file.write(rf"reg subrst = 0;" + '\n')
+        verilog_write(out_file, rf"reg subrst = 0;")
         
-        out_file.write(rf"wire subcomplete;" + '\n')
-        out_file.write(rf"wire mdet_complete;" + '\n')
+        verilog_write(out_file, rf"wire mdet_complete;")
+        verilog_write(out_file, rf"wire mdet_ready;")
         
         if n == 2:           
-            out_file.write(rf"wire [DATA_WIDTH-1:0] w1;" + '\n')
-            out_file.write(rf"wire [DATA_WIDTH-1:0] w2;" + '\n')
+            verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w1;")
+            verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w2;")
                 
-            out_file.write(rf"assign w1 = 64'b0 - a[1*DATA_WIDTH+:DATA_WIDTH];" + '\n')
-            out_file.write(rf"assign w2 = 64'b0 - a[2*DATA_WIDTH+:DATA_WIDTH];" + '\n')
+            verilog_write(out_file, rf"assign w1 = 64'b0 - a[1*DATA_WIDTH+:DATA_WIDTH];")
+            verilog_write(out_file, rf"assign w2 = 64'b0 - a[2*DATA_WIDTH+:DATA_WIDTH];")
                 
-            out_file.write(rf"assign m_trans = " + "{a[0*DATA_WIDTH+:DATA_WIDTH], w2, w1, a[3*DATA_WIDTH+:DATA_WIDTH]};" + '\n')
+            verilog_write(out_file, rf"assign m_trans = " + "{a[0*DATA_WIDTH+:DATA_WIDTH], w2, w1, a[3*DATA_WIDTH+:DATA_WIDTH]};")
             
         else:            
-            out_file.write(rf"wire [DATA_WIDTH-1:0] w_sub_det;" + '\n')
+            verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w_sub_det;")
             
-            out_file.write(rf"reg [(MATRIX_SIZE-1) * (MATRIX_SIZE-1) * DATA_WIDTH - 1:0] r_submatrix = 0;" + '\n')
+            verilog_write(out_file, rf"reg [(MATRIX_SIZE-1) * (MATRIX_SIZE-1) * DATA_WIDTH - 1:0] r_submatrix = 0;")
                     
-            out_file.write(rf"matdet{n_minus_one} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE-1)) mdetn(clk, rst | subrst, subcomplete, r_submatrix, w_sub_det);" + '\n')
+            verilog_write(out_file, rf"wire subready;")
+            verilog_write(out_file, rf"wire subcomplete;")
+                    
+            verilog_write(out_file, rf"matdet{n_minus_one} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE-1)) mdetn(clk, rst | subrst, subready, subcomplete, r_submatrix, w_sub_det);")
             
             for i in range(n): # row
                 for j in range(n): # col
-                    out_file.write(rf"reg [DATA_WIDTH-1:0] r_adj_{i}_{j} = 0;" + '\n')
+                    verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] r_adj_{i}_{j} = 0;")
                     
             trans_list = []
                             
@@ -302,32 +353,35 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
                     
             trans = "{" + ",".join(trans_list) + "}"
                 
-            out_file.write(rf"assign m_trans={trans};" + '\n')
+            verilog_write(out_file, rf"assign m_trans={trans};")
                     
-        out_file.write(rf"always @(posedge clk or posedge rst)" + '\n')
-        out_file.write(rf"begin" + '\n')
+        verilog_write(out_file, rf"always @(posedge clk)")
+        verilog_write(out_file, rf"begin")
         
-        out_file.write(rf"if (rst)" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"count = 0;" + '\n')
-        out_file.write(rf"complete = 0;" + '\n')
+        verilog_write(out_file, rf"if (rst)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"count = 0;")
+        verilog_write(out_file, rf"ready = 1;")
+        verilog_write(out_file, rf"complete = 0;")
         
         if n > 2:
             for i in range(n): # row
                 for j in range(n): # col
-                    out_file.write(rf"r_adj_{i}_{j} = 0;" + '\n')
+                    verilog_write(out_file, rf"r_adj_{i}_{j} = 0;")
             
-            out_file.write(rf"r_submatrix = 0;" + '\n')
+            verilog_write(out_file, rf"r_submatrix = 0;")
         
-        out_file.write(rf"subrst = 0;" + '\n')
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"else" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"if (subrst)" + '\n')
-        out_file.write(rf"begin" + '\n')
-        out_file.write(rf"subrst = 0;" + '\n')
-        out_file.write(rf"end" + '\n')
-        out_file.write(rf"end" + '\n')
+        cond = "" if n == 2 else " && subready"
+        
+        verilog_write(out_file, rf"subrst = 0;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else if (subrst{cond})")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"subrst = 0;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else if (!subrst)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"ready = 0;")
         
         count = 0
                
@@ -349,48 +403,49 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
             
                     sub_matrix = "{" + ",".join(indicies) + "}"
                     
-                    out_file.write(("else " if count != 0 else "") +  rf"if (count == {count})" + '\n')
-                    out_file.write(rf"begin" + '\n')
+                    verilog_write(out_file, ("else " if count != 0 else "") +  rf"if (count == {count})")
+                    verilog_write(out_file, rf"begin")
                     
-                    out_file.write(rf"if (subcomplete)" + '\n')
-                    out_file.write(rf"begin" + '\n')
+                    verilog_write(out_file, rf"if (subcomplete)")
+                    verilog_write(out_file, rf"begin")
                     
                     if (-1)**j * (-1)**i == 1: # positive
-                        out_file.write(rf"r_adj_{i}_{j} = w_sub_det;" + '\n')
+                        verilog_write(out_file, rf"r_adj_{i}_{j} = w_sub_det;")
                     else:
-                        out_file.write(rf"r_adj_{i}_{j} = {data_width}'b0 - w_sub_det;" + '\n')
+                        verilog_write(out_file, rf"r_adj_{i}_{j} = {data_width}'b0 - w_sub_det;")
                     
-                    out_file.write(rf"subrst = 1;" + '\n')
-                    out_file.write(rf"count += 1;" + '\n')
+                    verilog_write(out_file, rf"subrst = 1;")
+                    verilog_write(out_file, rf"count += 1;")
                     
-                    out_file.write(rf"end" + '\n')
+                    verilog_write(out_file, rf"end")
                     
-                    out_file.write(rf"r_submatrix = {sub_matrix};" + '\n')
+                    verilog_write(out_file, rf"r_submatrix = {sub_matrix};")
                     
-                    out_file.write(rf"end" + '\n')
+                    verilog_write(out_file, rf"end")
                     
                     count += 1
                     
-            out_file.write(rf"else if (count == {count} && subcomplete && mdet_complete)" + '\n')
-            out_file.write(rf"begin" + '\n')
-            out_file.write(rf"count += 1;" + '\n')
-            out_file.write(rf"end" + '\n');
+            verilog_write(out_file, rf"else if (count == {count} && subcomplete && mdet_complete)")
+            verilog_write(out_file, rf"begin")
+            verilog_write(out_file, rf"count += 1;")
+            verilog_write(out_file, rf"end");
             
             count += 1
             
-            out_file.write(rf"else if (count == {count})" + '\n')
-            out_file.write(rf"begin" + '\n')
-            out_file.write(rf"complete = 1;" + '\n')
-            out_file.write(rf"end" + '\n');
+            verilog_write(out_file, rf"else if (count == {count})")
+            verilog_write(out_file, rf"begin")
+            verilog_write(out_file, rf"complete = 1;")
+            verilog_write(out_file, rf"end");
         else:
-            out_file.write(rf"if (count == {count} && mdet_complete)" + '\n')
-            out_file.write(rf"begin" + '\n')
-            out_file.write(rf"complete = 1;" + '\n')
-            out_file.write(rf"end" + '\n')
+            verilog_write(out_file, rf"if (count == {count} && mdet_complete)")
+            verilog_write(out_file, rf"begin")
+            verilog_write(out_file, rf"complete = 1;")
+            verilog_write(out_file, rf"end")
         
 
-        out_file.write(rf"end" + '\n');                
-        out_file.write(r"endmodule" + '\n')
+        verilog_write(out_file, rf"end"); 
+        verilog_write(out_file, rf"end");                
+        verilog_write(out_file, r"endmodule")
     
 
 def main(dir, depth, data_width, bin_pos):

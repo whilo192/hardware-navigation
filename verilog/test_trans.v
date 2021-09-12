@@ -8,6 +8,11 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
     integer count = 0;
     integer seed = {py_seed};
     
+    initial begin
+        $dumpfile("test_trans_waveform.vcd");
+        $dumpvars(0, test);
+    end
+    
     always
     begin
         for (integer i = 0; i < MATRIX_SIZE*MATRIX_SIZE; i++)
