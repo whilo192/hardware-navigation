@@ -160,6 +160,45 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
                 print(err)
             
             i += 3
+        if op == "div":
+            num = generate_numpy_scalar_from_verilog_output(lines[i], width, bin_pos)
+            denom = generate_numpy_scalar_from_verilog_output(lines[i + 1], width, bin_pos)
+        
+            if lines[i+2] == "divide by zero":
+                i+= 3
+                ok_count += 1
+                err = 0
+                print("divide by zero")
+            else:
+
+                quot = generate_numpy_scalar_from_verilog_output(lines[i + 2], width, bin_pos)
+
+                np_quot = num / denom
+                
+                err = np.abs(quot - np_quot)
+                
+                if err < 0.05:
+                    ok_count += 1
+                else:
+                    print(lines[i])
+                    print(lines[i+1])
+                    print(lines[i+2])
+                    
+                    print()
+                    
+                    print(num)
+                    print(denom)
+                    print(quot)
+                    
+                    print()
+                
+                    print(np_quot)
+                    
+                    print()
+                    
+                    print(err)
+                
+            i += 3
         elif op == "det":
             mat = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
             det = generate_numpy_scalar_from_verilog_output(lines[i + 1], width, bin_pos)
@@ -274,4 +313,4 @@ def main(wk_dir, n, width, bin_pos, count, ops):
     
 if __name__ == "__main__":
     #n, width, bin_pos, count
-    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["dot", "mul", "det", "trans", "inv"])
+    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["dot", "mul", "div", "det", "trans", "inv"])

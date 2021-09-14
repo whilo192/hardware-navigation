@@ -301,7 +301,8 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
     
     with open(dir + rf"/matinv{n}.v", 'w') as out_file:     
         verilog_write(out_file, rf"module matinv{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire clk, input wire rst, output reg ready = 1, output reg complete = 0, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] inv, output wire w_singular);")
-        
+        verilog_write(out_file, rf"endmodule")
+        return
         verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] wdet;")
         verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] wdetdiv;")
         
