@@ -12,7 +12,17 @@ module div #(parameter DATA_WIDTH=1, parameter BIN_POS=1) (input wire clk, input
     reg [DATA_WIDTH*2-1:0] quot = 0;
     wire sign_neg;
 
-    assign sign_neg = (a < 0) ^ (b < 0);
+    wire sign_a_neg;
+    wire sign_b_neg;
+    wire [DATA_WIDTH-1:0] a_neg;
+    wire [DATA_WIDTH-1:0] b_neg;
+
+    assign a_neg = ~a+1;
+    assign b_neg = ~b+1;
+
+    assign sign_a_neg = a >> (DATA_WIDTH-1);
+    assign sign_b_neg = b >> (DATA_WIDTH-1);
+    assign sign_neg = sign_a_neg ^ sign_b_neg;
 
     assign div_zero = b == 0;
 
@@ -23,7 +33,7 @@ module div #(parameter DATA_WIDTH=1, parameter BIN_POS=1) (input wire clk, input
             ready = 1;
             count = 0;
             i = 0;
-            complete = 1;
+            complete = 0;
             quot = 0;
             out = 0;
             remainder = 0;
@@ -35,8 +45,8 @@ module div #(parameter DATA_WIDTH=1, parameter BIN_POS=1) (input wire clk, input
 
             if (count == 0)
             begin
-                num = zero + ((a < 0) ? ~a+1 : a) << DATA_WIDTH;
-                denom = zero + ((b < 0) ? ~b+1 : b);
+                num = {sign_a_neg ? a_neg : a, {DATA_WIDTH{1'b0}}};
+                denom = {{DATA_WIDTH{1'b0}}, sign_b_neg ? b_neg : b};
             end
             i = DATA_WIDTH * 2 - count - 1;
             remainder = remainder << 1;

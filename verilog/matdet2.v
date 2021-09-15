@@ -1,13 +1,13 @@
 module matdet2 #(parameter DATA_WIDTH=1, parameter BIN_POS=1, parameter MATRIX_SIZE=1) (input wire clk, input wire rst, output reg ready = 1, output reg complete = 0, input wire [(DATA_WIDTH * MATRIX_SIZE * MATRIX_SIZE)-1:0] a, output reg [DATA_WIDTH-1:0] det=0);
     reg [DATA_WIDTH-1:0] r_mul_lhs;
     reg [DATA_WIDTH-1:0] r_mul_rhs;
-    
+
     wire [DATA_WIDTH-1:0] w_out;
-    
+
     reg [DATA_WIDTH-1:0] count = 0;
-    
+
     mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m1(clk, r_mul_lhs, r_mul_rhs, w_out);
-    
+
     always @(posedge clk)
     begin
         if (rst)
