@@ -12,6 +12,7 @@
 *.run.xml
 /py-kalman/fig.pdf
 /verilog/src
+/verilog/__pycache__
 /aims/aims.pdf
 /interim-report/interim-report.pdf
 /final-report/final-report.pdf
