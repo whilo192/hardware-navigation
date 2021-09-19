@@ -22,22 +22,20 @@ def verilog_write(fd, line):
     elif line.startswith("module"):
         current_indent += 1
 
-def generate_scalar_vector(dir, n, data_width, bin_pos):
-    n2 = n ** 2
-    
+def generate_scalar_vector(dir, n, data_width, bin_pos):    
     with open(dir + rf"/scalvec{n}.v", 'w') as out_file:
         verilog_write(out_file, rf"module scalvec{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter VECTOR_SIZE={n}) (input wire clk, input wire [DATA_WIDTH - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] scale);")
         
-        empty_bits = (n**2-1) * data_width
+        empty_bits = (n-1) * data_width
         
-        for i in range(n2):
+        for i in range(n):
             verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w{i};")
             
-        for i in range(n2):
+        for i in range(n):
             i_str = rf"{i}*DATA_WIDTH+:DATA_WIDTH"
             verilog_write(out_file, rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m{i}(clk, a, b[{i_str}], w{i});" + "\n")
         
-        verilog_write(out_file, rf"assign scale = " + "{" + ",".join([rf"w{i}" for i in range(n2-1,-1,-1)]) + "};")
+        verilog_write(out_file, rf"assign scale = " + "{" + ",".join([rf"w{i}" for i in range(n-1,-1,-1)]) + "};")
         
         verilog_write(out_file, rf"endmodule")
 
