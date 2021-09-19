@@ -307,6 +307,11 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
         verilog_write(out_file, rf"wire div_complete;")
         verilog_write(out_file, rf"wire div_zero;")
 
+        verilog_write(out_file, rf"wire mdet_complete;")
+        verilog_write(out_file, rf"wire mdet_ready;")
+
+        verilog_write(out_file, rf"wire [(MATRIX_SIZE*MATRIX_SIZE*DATA_WIDTH)-1:0] m_trans;")
+
         verilog_write(out_file, rf"matdet{n} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .MATRIX_SIZE(MATRIX_SIZE)) mdet(clk, rst, mdet_ready, mdet_complete, a, wdet);")
 
         verilog_write(out_file, r"div #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) d1 (clk, rst | div_rst, div_ready, div_complete, {" + rf"{whole_bits}'b1, {bin_pos}'b0" + "}, wdet, wdetdiv, div_zero);")
@@ -315,14 +320,9 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
 
         verilog_write(out_file, rf"assign w_singular = wdet == 0 || div_zero;")
 
-        verilog_write(out_file, rf"wire [(MATRIX_SIZE*MATRIX_SIZE*DATA_WIDTH)-1:0] m_trans;")
-
         verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] count = 0;")
 
         verilog_write(out_file, rf"reg subrst = 0;")
-
-        verilog_write(out_file, rf"wire mdet_complete;")
-        verilog_write(out_file, rf"wire mdet_ready;")
 
         if n == 2:
             verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] w1;")
