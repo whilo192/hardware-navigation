@@ -5,6 +5,7 @@ import sys
 import subprocess
 import random
 import numpy as np
+from scipy.linalg import lu
 
 
 def my_subprocess_run(command, print_stdout=True):
@@ -85,7 +86,7 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
 
     os.chdir(wk_dir)
 
-    my_subprocess_run(["iverilog", "-o", rf"test_{op}", rf"test_{op}.v"] +  ["matdet" + str(i+2) +".v" for i in range(n-1)] + ["mul.v", "div.v"] + [rf"scalvec{n2}.v", rf"mattrans{n}.v", rf"vecvec{n}.v", rf"matmat{n}.v", rf"matinv{n}.v"])
+    my_subprocess_run(["iverilog", "-o", rf"test_{op}", rf"test_{op}.v"] +  ["matdet" + str(i+2) +".v" for i in range(n-1)] + ["mul.v", "div.v"] + [rf"scalvec{n2}.v", rf"mattrans{n}.v", rf"vecvec{n}.v", rf"matlu{n}.v", rf"matmat{n}.v", rf"matinv{n}.v"])
     result = my_subprocess_run(["vvp", rf"test_{op}"], False)
 
     os.chdir("..")
@@ -227,6 +228,46 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
                 print(err)
 
             i += 2
+        elif op == "lu":
+            if lines[i] == "singular":
+                i+= 1
+                ok_count += 1
+                err = 0
+                print("Singular matrix")
+            else:
+                mat = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
+                v_lu = generate_numpy_matrix_from_verilog_output(lines[i+1], n, width, bin_pos)
+                v_p = generate_numpy_vector_from_verilog_output(lines[i+2], n+1, width, 0)
+
+                (s_p, s_l, s_u) = lu(mat)
+
+                verilog_lu = v_lu#v_p * v_lu
+                np_lu = s_p @ s_l @ s_u
+
+                err = np_scal_diff(verilog_lu, np_lu)
+
+                if err < 0.01:
+                    ok_count += 1
+                else:
+                    print(lines[i])
+                    print(lines[i+1])
+                    print(lines[i+2])
+
+                    print()
+
+                    print(mat)
+                    print(v_lu)
+                    print(v_p)
+
+                    print()
+
+                    print(np_lu)
+
+                    print()
+
+                    print(err)
+
+                i += 3
         elif op == "trans":
             mat = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
             trans = generate_numpy_matrix_from_verilog_output(lines[i + 1], n, width, bin_pos)
@@ -313,4 +354,4 @@ def main(wk_dir, n, width, bin_pos, count, ops):
 
 if __name__ == "__main__":
     #n, width, bin_pos, count
-    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["dot", "mul", "div", "det", "trans", "inv"])
+    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["lu"])#["dot", "mul", "div", "det", "trans", "inv"])

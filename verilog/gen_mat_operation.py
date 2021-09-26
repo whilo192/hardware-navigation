@@ -22,7 +22,7 @@ def verilog_write(fd, line):
     elif line.startswith("module"):
         current_indent += 1
 
-def generate_scalar_vector(dir, n, data_width, bin_pos):    
+def generate_scalar_vector(dir, n, data_width, bin_pos):
     with open(dir + rf"/scalvec{n}.v", 'w') as out_file:
         verilog_write(out_file, rf"module scalvec{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter VECTOR_SIZE={n}) (input wire clk, input wire [DATA_WIDTH - 1:0] a, input wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] b, output wire [(VECTOR_SIZE * DATA_WIDTH) - 1:0] scale);")
 
@@ -289,6 +289,209 @@ def generate_matrix_determinant(dir, n, data_width, bin_pos):
 
         verilog_write(out_file, r"endmodule")
 
+def generate_matrix_lu(dir, n, data_width, bin_pos):
+    with open(dir + rf"/matlu{n}.v", 'w') as out_file:
+        verilog_write(out_file, rf"module matlu{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire clk, input wire rst, output reg ready = 1, output reg complete = 0, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output reg [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] lu = 0, output reg [(MATRIX_SIZE + 1) * DATA_WIDTH - 1:0] p = 0, output reg r_singular = 0);")
+
+        verilog_write(out_file, rf"parameter STATE_INIT = 0;")
+        verilog_write(out_file, rf"parameter STATE_A_MAX = 1;")
+        verilog_write(out_file, rf"parameter STATE_PIVOT = 2;")
+        verilog_write(out_file, rf"parameter STATE_DIV_LOOP = 3;")
+        verilog_write(out_file, rf"parameter STATE_MUL_LOOP = 4;")
+        verilog_write(out_file, rf"parameter STATE_FINISH = 5;")
+
+        verilog_write(out_file, rf"parameter ROW_SIZE = MATRIX_SIZE * DATA_WIDTH;")
+
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] a_max = 0;")
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] i_max = 0;")
+
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] a_abs = 0;")
+
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] mul_lhs = 0;")
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] mul_rhs = 0;")
+        verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] mul_out;")
+
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] div_lhs = 0;")
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] div_rhs = 0;")
+        verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] div_out;")
+
+        verilog_write(out_file, rf"wire w_singular;")
+
+        verilog_write(out_file, rf"reg div_rst = 1;")
+        verilog_write(out_file, rf"wire div_ready;")
+        verilog_write(out_file, rf"wire div_cinplete;")
+
+        verilog_write(out_file, rf"reg [DATA_WIDTH*MATRIX_SIZE-1:0] a_pivot = 0;")
+
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] i = 0;")
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] j = 0;")
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] k = 0;")
+
+        verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] state = STATE_INIT;")
+
+        verilog_write(out_file, rf"mul #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) m1(clk, mul_lhs, mul_rhs, mul_out);")
+        verilog_write(out_file, rf"div #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS)) d1(clk, div_rst | rst, div_ready, div_complete, div_lhs, div_rhs, div_out, w_singular);")
+
+        verilog_write(out_file, rf"always @(posedge clk)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"if (rst)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"p = 0;")
+        verilog_write(out_file, rf"lu = 0;")
+        verilog_write(out_file, rf"state = STATE_INIT;")
+        verilog_write(out_file, rf"a_pivot = 0;")
+        verilog_write(out_file, rf"i = 0;")
+        verilog_write(out_file, rf"j = 0;")
+        verilog_write(out_file, rf"k = 0;")
+        verilog_write(out_file, rf"complete = 0;")
+        verilog_write(out_file, rf"ready = 1;")
+        verilog_write(out_file, rf"div_rst = 1;")
+        verilog_write(out_file, rf"a_abs = 0;")
+        verilog_write(out_file, rf"a_max = 0;")
+        verilog_write(out_file, rf"i_max = 0;")
+        verilog_write(out_file, rf"mul_lhs = 0;")
+        verilog_write(out_file, rf"mul_rhs = 0;")
+        verilog_write(out_file, rf"div_lhs = 0;")
+        verilog_write(out_file, rf"div_rhs = 0;")
+        verilog_write(out_file, rf"r_singular = 0;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"if (state == STATE_INIT)")
+        verilog_write(out_file, rf"begin")
+
+        for i in range(n+1):
+            verilog_write(out_file, rf"p[{i}+:DATA_WIDTH] = {data_width}'d{i};")
+
+        verilog_write(out_file, rf"a_max = 0;")
+        verilog_write(out_file, rf"i_max = i;")
+        verilog_write(out_file, rf"lu = a;")
+
+        verilog_write(out_file, rf"k = i;")
+        verilog_write(out_file, rf"state = STATE_A_MAX;")
+
+        verilog_write(out_file, rf"end")
+
+
+        verilog_write(out_file, rf"else if (state == STATE_A_MAX)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"if (k < MATRIX_SIZE)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"a_abs = lu[k+i*MATRIX_SIZE+:DATA_WIDTH] >= 0 ? a : -a;")
+
+        verilog_write(out_file, rf"if (a_abs > a_max)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"a_max = a_abs;")
+        verilog_write(out_file, rf"i_max = k;")
+
+        verilog_write(out_file, rf"end")
+
+        verilog_write(out_file, rf"k += 1;")
+
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"state = STATE_PIVOT;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
+
+        verilog_write(out_file, rf"else if (state == STATE_PIVOT)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"if (a_max == 0)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"r_singular = 1;")
+        verilog_write(out_file, rf"state = STATE_FINISH;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else if (i_max != i)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"j = p[i+:DATA_WIDTH];")
+        verilog_write(out_file, rf"p[i+:DATA_WIDTH] = p[i_max+:DATA_WIDTH];")
+        verilog_write(out_file, rf"p[i_max+:DATA_WIDTH] = j;")
+
+        verilog_write(out_file, rf"a_pivot = lu[i+:ROW_SIZE];")
+        verilog_write(out_file, rf"lu[i+:ROW_SIZE] = lu[i_max+:ROW_SIZE];")
+        verilog_write(out_file, rf"lu[i_max+:ROW_SIZE] = a_pivot;")
+
+        verilog_write(out_file, rf"p[MATRIX_SIZE-1+:DATA_WIDTH] += 1;")
+
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"state = STATE_DIV_LOOP;")
+        verilog_write(out_file, rf"j = i + 1;")
+        verilog_write(out_file, rf"div_rst = 0;")
+        verilog_write(out_file, rf"div_lhs = lu[j+i*MATRIX_SIZE+:DATA_WIDTH];")
+        verilog_write(out_file, rf"div_rhs = lu[i+i*MATRIX_SIZE+:DATA_WIDTH];")
+        verilog_write(out_file, rf"end")
+
+        verilog_write(out_file, rf"else if (state == STATE_DIV_LOOP)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"if (div_complete)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"lu[j + i * MATRIX_SIZE] = div_out;")
+        verilog_write(out_file, rf"state = STATE_MUL_LOOP;")
+        verilog_write(out_file, rf"div_rst = 1;")
+        verilog_write(out_file, rf"mul_lhs = lu[j+i*MATRIX_SIZE+:DATA_WIDTH];")
+        verilog_write(out_file, rf"mul_rhs = lu[i+k*MATRIX_SIZE+:DATA_WIDTH];")
+        verilog_write(out_file, rf"k = i + 1;")
+
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
+
+        verilog_write(out_file, rf"else if (state == STATE_MUL_LOOP)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"lu[j+k*MATRIX_SIZE+:DATA_WIDTH] -= mul_out;")
+        verilog_write(out_file, rf"k += 1;")
+        verilog_write(out_file, rf"if (k < MATRIX_SIZE)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"mul_lhs = lu[j+i*MATRIX_SIZE+:DATA_WIDTH];")
+        verilog_write(out_file, rf"mul_rhs = lu[i+k*MATRIX_SIZE+:DATA_WIDTH];")
+        verilog_write(out_file, rf"end")
+
+        verilog_write(out_file, rf"else")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"j += 1;")
+        verilog_write(out_file, rf"if (j < MATRIX_SIZE)")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"state = STATE_DIV_LOOP;")
+        verilog_write(out_file, rf"div_lhs = lu[j+i*MATRIX_SIZE+:DATA_WIDTH];")
+        verilog_write(out_file, rf"div_rhs = lu[i+i*MATRIX_SIZE+:DATA_WIDTH];")
+
+        verilog_write(out_file, rf"div_rst = 0;")
+        verilog_write(out_file, rf"k = i + 1;")
+
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else")
+        verilog_write(out_file, rf"begin")
+
+        verilog_write(out_file, rf"i += 1;")
+        verilog_write(out_file, rf"if (i < MATRIX_SIZE)")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"j = 0;")
+        verilog_write(out_file, rf"k = 0;")
+        verilog_write(out_file, rf"state = STATE_INIT;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"else")
+        verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"complete = 1;")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"end")
+        verilog_write(out_file, rf"endmodule")
+
 def generate_matrix_inverse(dir, n, data_width, bin_pos):
     n_minus_one = n-1
 
@@ -296,7 +499,7 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
 
     whole_bits = data_width - bin_pos
 
-    with open(dir + rf"/matinv{n}.v", 'w') as out_file:     
+    with open(dir + rf"/matinv{n}.v", 'w') as out_file:
         verilog_write(out_file, rf"module matinv{n} #(parameter DATA_WIDTH={data_width}, parameter BIN_POS={bin_pos}, parameter MATRIX_SIZE={n}) (input wire clk, input wire rst, output reg ready = 1, output reg complete = 0, input wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] a, output wire [(MATRIX_SIZE * MATRIX_SIZE * DATA_WIDTH) - 1:0] inv, output wire w_singular);")
 
         verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] wdet;")
@@ -475,6 +678,7 @@ def main(dir, depth, data_width, bin_pos):
     generate_vector_vector(dir, depth, data_width, bin_pos)    
     generate_matrix_matrix(dir, depth, data_width, bin_pos)
     generate_matrix_transpose(dir, depth, data_width, bin_pos)
+    generate_matrix_lu(dir, depth, data_width, bin_pos)
     generate_matrix_determinant(dir, depth, data_width, bin_pos)
     generate_matrix_inverse(dir, depth, data_width, bin_pos)
 
