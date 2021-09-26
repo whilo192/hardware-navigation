@@ -355,4 +355,4 @@ def main(wk_dir, n, width, bin_pos, count, ops):
 
 if __name__ == "__main__":
     #n, width, bin_pos, count
-    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["lu", "det"])#["dot", "mul", "div", "det", "trans", "inv"])
+    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["dot", "mul", "div", "det", "trans", "inv"])

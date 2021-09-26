@@ -205,7 +205,7 @@ def generate_matrix_determinant(dir, n, data_width, bin_pos):
         verilog_write(out_file, rf"wire singular;")
         verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] count = 0;")
         verilog_write(out_file, rf"reg last_mul = 0;")
-        
+
         verilog_write(out_file, rf"wire [DATA_WIDTH-1:0] mul_out;")
         verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] mul_lhs = 0;")
         verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] mul_rhs = 0;")
@@ -290,7 +290,7 @@ def generate_matrix_lu(dir, n, data_width, bin_pos):
         verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] a_max = 0;")
         verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] i_max = 0;")
         
-        verilog_write(out_file, rf"reg last_mul = 0;")
+        verilog_write(out_file, rf"reg last_mul = 1;")
 
         verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] a_abs = 0;")
 
@@ -342,11 +342,12 @@ def generate_matrix_lu(dir, n, data_width, bin_pos):
         verilog_write(out_file, rf"div_lhs = 0;")
         verilog_write(out_file, rf"div_rhs = 0;")
         verilog_write(out_file, rf"r_singular = 0;")
-        verilog_write(out_file, rf"last_mul = 0;")
+        verilog_write(out_file, rf"last_mul = 1;")
         verilog_write(out_file, rf"end")
         verilog_write(out_file, rf"else")
         verilog_write(out_file, rf"begin")
 
+        verilog_write(out_file, rf"ready = 0;")
         verilog_write(out_file, rf"if (last_mul)")
         verilog_write(out_file, rf"begin")
         verilog_write(out_file, rf"last_mul = 0;")
@@ -490,6 +491,7 @@ def generate_matrix_lu(dir, n, data_width, bin_pos):
         verilog_write(out_file, rf"end")
         verilog_write(out_file, rf"else")
         verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"state = STATE_FINISH;")
         verilog_write(out_file, rf"complete = 1;")
         verilog_write(out_file, rf"end")
         verilog_write(out_file, rf"end")
@@ -528,7 +530,7 @@ def generate_matrix_inverse(dir, n, data_width, bin_pos):
 
         verilog_write(out_file, rf"scalvec{n2} #(.DATA_WIDTH(DATA_WIDTH), .BIN_POS(BIN_POS), .VECTOR_SIZE(MATRIX_SIZE * MATRIX_SIZE)) svm1(clk, wdetdiv, m_trans, inv);")
 
-        verilog_write(out_file, rf"assign w_singular = wdet == 0 || div_zero;")
+        verilog_write(out_file, rf"assign w_singular = (wdet == 0 || div_zero) && mdet_complete;")
 
         verilog_write(out_file, rf"reg [DATA_WIDTH-1:0] count = 0;")
 
