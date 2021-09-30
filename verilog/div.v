@@ -57,7 +57,7 @@ module div #(parameter DATA_WIDTH=1, parameter BIN_POS=1) (input wire clk, input
                 quot[i] = 1;
             end
 
-            count += 1;
+            count = count + 1;
 
             if (count == DATA_WIDTH * 2)
             begin
