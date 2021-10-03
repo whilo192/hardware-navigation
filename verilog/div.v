@@ -62,7 +62,7 @@ module div #(parameter DATA_WIDTH=1, parameter BIN_POS=1) (input wire clk, input
             if (count == DATA_WIDTH * 2)
             begin
                 //Take the centre of the enlarged range
-                out = quot[DATA_WIDTH*2-1-DATA_WIDTH/2:DATA_WIDTH/2];
+                out = quot >> (DATA_WIDTH - BIN_POS);
                 if (sign_neg)
                 begin
                     out = ~out + 1;
