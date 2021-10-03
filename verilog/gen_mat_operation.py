@@ -228,6 +228,7 @@ def generate_matrix_determinant(dir, n, data_width, bin_pos):
         verilog_write(out_file, rf"end")
         verilog_write(out_file, rf"else")
         verilog_write(out_file, rf"begin")
+        verilog_write(out_file, rf"ready = 0;")
         verilog_write(out_file, rf"if (lu_complete)")
         verilog_write(out_file, rf"begin")
         verilog_write(out_file, rf"if (singular)")
