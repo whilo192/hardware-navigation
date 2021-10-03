@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
 import validator
 import matplotlib.pyplot as plt
@@ -26,14 +26,19 @@ for i in range(nx):
             try:
                 validator.my_subprocess_run(["./gen_mat_operation.py", str(matrix_size), str(int(xv[j, i] + yv[j, i])), str(int(yv[j, i]))])
 
-                (count, ok_count, avg_err) = validator.process_op("src", matrix_size, int(xv[j, i] + yv[j, i]), int(yv[j, i]), 10, "det")
+                (count, ok_count, avg_err) = validator.process_op("src", matrix_size, int(xv[j, i] + yv[j, i]), int(yv[j, i]), 10, "inv")
+
+                #Ignore breakdown
+                if avg_err > 1:
+                    results[j, i] = 0
+                    break
 
                 avg_err_log = np.log(avg_err)
 
                 results[j, i] = avg_err_log
 
                 break
-            except numpy.linalg.LinAlgError:
+            except np.linalg.LinAlgError:
                 print("Singular matrix, trying again")
 
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
