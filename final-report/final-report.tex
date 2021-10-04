@@ -128,7 +128,7 @@ The significance of being based off of Bayes's Theorem is that it means that equ
 	P(S|D_{k+1},D_k,m) = {P(D_{k+1}|D_k,S,m) \over P(D_{k+1}|D_k,m)} P(S | D_k, m)
 \end{equation}
 
-\noindent Thus we can add more measurements to our system to gain a better understanding of the state that it is in. One of the most widely used applications of sequential inference is the Kalman filter, which I discuss below.
+\noindent Thus we can add more measurements to our system to gain a better understanding of the state that it is in. Sequential Inference provides the theoretical bases for the Kalman Filter---one of the most widely used applications of sequential inference---which I discuss below.
 
 \subsubsection{Kalman Filter}
 
@@ -182,7 +182,7 @@ For this project, the required matrix operations are
 
 Of these, transposition is by far the easiest, since it is nothing more than shuffling some data around. The next easiest is scaling, which can be implemented by something as simple as a loop through all of the elements of the vector or matrix, and multiplying it by the scalar. Multiplication by a vector or matrix is also comparatively simple, as it is just a series of dot products.
 
-The two more difficult operations are the determinant and inverse. The naive matrix determinant algorithm is
+The two more difficult operations are the determinant and inverse. The naive matrix determinant algorithm \cite{strang2006linear} is
 
 \begin{equation}
 	\det{\mathbf{A}} = 
@@ -206,15 +206,17 @@ These are fine for small matrices, however for this project I am targeting a $12
 \subsubsection{Better Matrix Algorithms}
 \label{lu}
 
-Thankfully there are better ways. Imagine we could factor $\mathbf{A} = \mathbf{L}\mathbf{U}$. Thus $det(\mathbf{A}) = \det(\mathbf{L^T}) \det(\mathbf{U})$, since $\det(\mathbf{AB}) = \det(\mathbf{A}) \det(\mathbf{B})$, and $\det(\mathbf{A}^T) = \det(\mathbf{A})$. Thus,  if $\mathbf{L}$ is lower triangular (such that $\mathbf{L}^T$ is upper triangular), and $\mathbf{U}$ is upper triangular, and all the diagonal entries in $\mathbf{L}$ are $1$, then we can work out $\det{\mathbf{A}}=\sum_{i=1}^{n}u_{ii}$, since the determinant of an upper triangular matrix is just the product of the diagonal entries\footnote{The reason for this is that if, when calculating the determinant the naive way, use the left column for the multiplication factors, as opposed to the top row, then only the upper left of each sub-determinant we have to calculate will be non-zero, thus we only have to calculate one determinant for each iteration of the recursion, and multiply it by that value on the diagonal. When we reach the base $2\times2$ case, the bottom left value will be zero, thus the determinant will be the product of the two diagonal elements. Thus as we work back from the bottom of the recursion we only ever multiply the values on the diagonal.}. This means calculating the determinant is $\mathcal{O}(n)$, which is a huge improvement.
+Thankfully there are better ways\footnote{This is very common with numerical methods, often the more intuitive methods are mathematically ``cleaner'', however they tend to be slower, or more numerically unstable, than the less intuitive but more optimised algorithms.}. Imagine we could factor $\mathbf{A} = \mathbf{L}\mathbf{U}$. Thus $\det(\mathbf{A}) = \det(\mathbf{L^T}) \det(\mathbf{U})$, since $\det(\mathbf{AB}) = \det(\mathbf{A}) \det(\mathbf{B})$, and $\det(\mathbf{A}^T) = \det(\mathbf{A})$. Thus,  if $\mathbf{L}$ is lower triangular (such that $\mathbf{L}^T$ is upper triangular), and $\mathbf{U}$ is upper triangular, and all the diagonal entries in $\mathbf{L}$ are $1$, then we can work out $\det{\mathbf{A}}=\sum_{i=1}^{n}u_{ii}$, since the determinant of an upper triangular matrix is just the product of the diagonal entries\footnote{The reason for this is that if--when calculating the determinant the naive way---we use the left column for the multiplication factors, as opposed to the top row, then only the upper left of each sub-determinant we have to calculate will be non-zero, thus we only have to calculate one determinant for each iteration of the recursion, and multiply it by that value on the diagonal. When we reach the base $2\times2$ case, the bottom left value will be zero, thus the determinant will be the product of the two diagonal elements. Thus as we work back from the bottom of the recursion we only ever multiply the values on the diagonal.}. This means calculating the determinant is $\mathcal{O}(n)$, which is a huge improvement.
 
 Working out the inverse is simple. If $\mathbf{AX}=\mathbf{I}$, then we know $\mathbf{A}^{-1} = \mathbf{X}$. This is just solving $\mathbf{LUx}=\mathbf{i}$ $n$ times, where $\mathbf{x}$ is the $n$\textsuperscript{th} column of $\mathbf{X}$ and where $\mathbf{i}$ is the $n$\textsuperscript{th} column of $\mathbf{I}$. This is incredibly straightforward, since $\mathbf{L}$ and $\mathbf{U}$ are upper triangular, thus we can use forward and back substitution to solve this as two sets of simultaneous equations. This is $\mathcal{O}(n^3)$, since all three operations are linear.
 
 Of course this all assumes that working out $L$ and $U$ is simple.
 
-This process is called the ``LU Decomposition". It also provides a third matrix, $\mathbf{P}$, the permutation matrix. This is because the LU decomposition is based off of Gaussian elimination, which may require swapping rows, and thus to rebuild $\mathbf{A}$ from $\mathbf{L}$ and $\mathbf{U}$ we need to know which rows were swapped, thus $\mathbf{PA}$ = $\mathbf{LU}$. The details of the LU decomposition are unimportant, beyond that it involves Gaussian elimination, however what is important to note is that the LU decomposition is $\mathcal{O}(n^3)$. Since the inversion or determinant steps come after the LU decomposition, the complexity is added, not multiplied. Thus calculating the determinant and inverse is still only $\mathcal{O}(n^3)$ i.e. polynomial.
+This process is called the ``LU Decomposition''\cite{lu_decomposition}. It also provides a third matrix, $\mathbf{P}$, the permutation matrix. This is because the LU decomposition is based off of Gaussian elimination, which may require swapping rows, and thus to rebuild $\mathbf{A}$ from $\mathbf{L}$ and $\mathbf{U}$ we need to know which rows were swapped, thus $\mathbf{PA}$ = $\mathbf{LU}$. The details of the LU decomposition are unimportant, beyond that it involves Gaussian elimination, however what is important to note is that the LU decomposition is $\mathcal{O}(n^3)$. Since the inversion or determinant steps come after the LU decomposition, the complexity is added, not multiplied. Thus calculating the determinant and inverse is still only $\mathcal{O}(n^3)$ i.e. polynomial.
 
 One corollary of the above is this: We can still implement the naive inverse using the better determinant. Since the naive inverse requires $n^2$ determinants (of size $n-1 \times n-1$, which is still $\mathcal{O}(n^3)$), this means that this half-naive approach is $\mathcal{O}(n^5)$. This is still significantly better than $\mathcal{O}(n^!)$, and I will discuss this more later in this report.
+
+In addition to the LU decomposition there is also the QR decomposition, and the singular value decomposition (SVD)\cite{num_lin_alg}. The QR decomposition was not chosen because it is slightly slower that the LU decomposition (about twice as slow), and the SVD was not chosen because it is harder to implement, and because it is more suited to solving homogenous equations (i.e\@ those of the form $\mathbf{A}\mathbf{x}=\mathbf{0}$), or, if there is no such $\mathbf{x}$ that satisfies that equation, then it can also be used to solve the ``least-squares'' problem, where we want to find the $\mathbf{x}$ which minimises $||\mathbf{Ax}||_2$ (the 2-norm of $\mathbf{Ax}$, for a vector this will be the magnitude). This is extremely important (and with the SVD, very fast), however this is not relevant to this project.
 
 \subsection{Hardware Description Languages}
 
@@ -225,7 +227,7 @@ HDLs are the hardware equivalent of high level programming language---they do no
 
 This can of course be used for more complex problems. For example, designing a minimal\footnote{Designing a useful CPU is more complicated but entirely achievable---this one can even boot linux: \url{https://github.com/ultraembedded/biriscv}} CPU in an HDL is almost trivial---all it needs is a suitably large array (to act as memory), and a few \lstinline[language=Verilog]|if| statements to determine what to do with each opcode.
 
-In a few hours, I was able to design such a minimal CPU\footnote{I want emphasise here just how minimal this CPU is---inefficient, doesn't support a stack, no registers, no signed integers, no floating point numbers etc.\@---it is just a toy to show what can be done with HDLs such as Verilog.} (using an HDL called ``Verilog'') which is included in \ref{verilog_cpu}. This code also creates a small block of memory, into which I and in that memory some instructions. Those instructions are (in plain English):
+In a few hours, I was able to design such a minimal CPU\footnote{I want emphasise here just how minimal this CPU is---inefficient, doesn't support a stack, no registers, no signed integers, no floating point numbers etc.\@---it is just a toy to show what can be done with HDLs such as Verilog.} (using an HDL called ``Verilog''), in only around 150 lines of code (which is included in \ref{verilog_cpu}). This code also creates a small block of memory, into which I and in that memory some instructions. Those instructions are (in plain English):
 
 \begin{enumerate}
 	\item Set value at memory address \texttt{0xf0} to \texttt{0x10} (16).
@@ -278,7 +280,7 @@ The other advantage hardware has over software is that it can be made very speci
 
 \section{Progress}
 
-\subsection{Python Kalman Filter}
+\subsection{Python Kalman Filter / Test Harness Development}
 
 The first phase of the project was getting a simple Kalman filter working. This was based on a simple one-dimensional cart moving backwards and forwards, with the measured quantity being position. In figure \ref{1d_position_fig} we can see the system handles both a fairly predictable motion as well as an unpredictable motion quite well. This is to be expected since we are measuring position, thus we expect the estimate of position to be fairly accurate (for obvious reasons). The estimate of velocity slowly converges to the actual velocity, however it has to re-converge after the bump. This is also expected since the bump was modelled as an impulse, which isn't a 100\% realistic scenario.
 
@@ -353,13 +355,13 @@ The solution is to automatically generate the Verilog code in software---this is
 
 So far, I have a reliable tool to generate the Verilog for calculating the determinant of arbitrarily sized matrices (with the maximum size specified when the Verilog is generated). I have also created a testbench module and associated Python script to confirm that it is, in fact, reliable.
 
-The testbench model gives the following output when the matrix values are between -10 and +10, and all numbers are 8 bits long, for $2\times2$ matrices. It outputs information when the result from Icarus differs from what Python's \lstinline|numpy| library expects. Here we can see the module failing occasionally due to integer overflow, note that in each case, if we flip all the bits in the numbers labelled ``Parsed matrix determinant" and add one, then the number will be (when interpreted as a two's compliment number) the same as the number labelled ``Icarus determinant":
+The testbench model gives the following output when the matrix values are between -10 and +10, and all numbers are 8 bits long, for $2\times2$ matrices. It outputs information when the result from Icarus differs from what Python's \lstinline|numpy| library expects. Here we can see the module failing occasionally due to integer overflow\footnote{Note that in each case, if we flip all the bits in the numbers labelled ``Parsed matrix determinant'' and add one, then the number will be (when interpreted as a two's compliment number) the same as the number labelled ``Icarus determinant''} somewhere in the operation, due to the size of the numbers:
 
 \lstinputlisting[numbers=none, backgroundcolor=\color{white}]{testbench-output-28.txt}
 
-With 16-bit numbers, all 1000 runs for the $2\times2$ matrices succeed. For a $6\times6$ matrix, 24-bit numbers are needed. If the range of matrix values is increased to -100 to 100 then 48 bits are required for a $6\times6$ matrix, and 16 bits are required for a simple $2\times2$ matrix. For a $12\times12$ matrix with numbers ranging from 0 to 10, similar to what I would expect to see in a Kalman filter, 128-bit numbers are required.
+With 16-bit numbers, all 1000 runs for the $2\times2$ matrices succeed. For a $6\times6$ matrix, 24-bit numbers are needed. If the range of matrix values is increased to -100 to 100 then 48 bits are required for a $6\times6$ matrix, and 16 bits are required for a simple $2\times2$ matrix. For a $12\times12$ matrix with numbers ranging from 0 to 10, similar to what I would expect to see in a Kalman filter, 128-bit numbers are required, 64 whole bits, and 64 decimal bits.
 
-We can see this in the figures \ref{full_heat} and \ref{full_sfc}. What we can see is that the integer width needs to be sufficient to prevent overflow, and no more, i.e.\@ there is no benefit to using larger integer components. This is in contrast to the decimal component, where we see that increasing that reduces error linearly, until about 56 bits.
+We can see this in the figures \ref{full_heat} and \ref{full_sfc}. What we can see is that the integer width needs to be sufficient to prevent overflow, and no more, i.e.\@ there is no benefit to using larger integer components. This is in contrast to the decimal component, where we see that increasing that reduces error linearly, until about 56 bits, where it starts to flatten out.
 
 \begin{figure}[thp]
 	\centering
@@ -379,7 +381,7 @@ We can see this in the figures \ref{full_heat} and \ref{full_sfc}. What we can s
 	\label{full_sfc}
 \end{figure}
 
-My first implementation of the matrix operations was using the naive algorithms, as described in section \ref{naive}. This implementation worked, however when it came to simulating the Verilog, both the determinant, and even more so the inverse took a very long time for the $12 \times 12$ case. I had estimated that simulating the $12 \times 12$ inverse would take about a whole day, and also be far to time consuming to implement in practice. As a result of this, I turned to the LU decomposition, as discussed in section \ref{lu}. Due to time constraints, I was only to implement the ``half-naive'' inverse, however this alone made a huge difference: The simulation time dropped to 10 minutes. In addition, the predicted performance wasn't too bad - about 2.5 million clock cycles. On a 100 MHz FPGA this could do 40 operations per second. Since there is only one inverse per Kalman Filter cycle, and the inverse operation takes the longest by far of all of the operations, I would expect to be able to run about 40 Kalman filter cycles per second, which would be sufficient for real time operation. This is not ideal however, so a future work goal would to implement the full use of the LU decomposition for the matrix inverse. This would reduce the runtime from $\mathcal{O}(n^5)$ to $\mathcal{O}(n^3)$, i.e. for a $12 \times 12$ matrix it would take 144 times less. That would mean only around 20,000 clock cycles, or over 5,500 Kalman Filter cycles per second. 
+My first implementation of the matrix operations was using the naive algorithms, as described in section \ref{naive}. This implementation worked, however when it came to simulating the Verilog, both the determinant, and even more so the inverse took a very long time for the $12 \times 12$ case. I had estimated that simulating the $12 \times 12$ inverse would take about a whole day, and also be far too time consuming to implement in practice. As a result of this, I turned to the LU decomposition, as discussed in section \ref{lu}. Due to time constraints, I was only to implement the ``half-naive'' inverse, however this alone made a huge difference: The simulation time dropped to 10 minutes---and the predicted performance wasn't too bad---about 2.5 million clock cycles. On a 100 MHz FPGA this could do 40 operations per second. Since there is only one inverse per Kalman Filter cycle, and the inverse operation takes the longest by far of all of the operations, I would expect to be able to run about 40 Kalman filter cycles per second, which would be sufficient for real time operation. This is not ideal however, so a future work goal would to implement the full use of the LU decomposition for the matrix inverse. This would reduce the runtime from $\mathcal{O}(n^5)$ to $\mathcal{O}(n^3)$, i.e. for a $12 \times 12$ matrix it would take 144 times less. That would mean only around 20,000 clock cycles, or over 5,500 Kalman Filter cycles per second. This is a huge improvement.
 
 \subsubsection{Synthesis and Implementation}
 
@@ -393,6 +395,8 @@ Due to time constraints I was not in a position to put a final bitstream on an F
 	\caption{The sort of FPGA I would target for this project.}
 	\label{tim_xilinx}
 \end{figure}
+
+This FPGA has 101,440 logic cells (look up tables), and 240 DSP slices (multiplier units), which should be sufficient for the purposes of this project. A development board with this FPGA on it costs around \$129.00 USD, which is entirely reasonable. Of course this would not be acceptable for a chip to be included in a phone, however if I was to actually manufacture this chip it would be fabricated to an actual dedicated chip (an application specific integrated circuit), which would be much cheaper if manufactured in volume.
 
 \section{Future Work}
 
