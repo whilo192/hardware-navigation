@@ -17,10 +17,18 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos});
 
     initial
     begin
-        $dumpfile("test_div_waveform.vcd");
-        $dumpvars(0, test);
-        num = $random(seed) % 100 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
-        denom = $random(seed) % 100 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+        //$dumpfile("test_div_waveform.vcd");
+        //$dumpvars(0, test);
+        if (BIN_POS < 32)
+        begin
+            num = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+            denom = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+        end
+        else
+        begin
+            num = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+            denom = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+        end
     end
 
     always
@@ -57,8 +65,16 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos});
 
             rst = 1;
 
-            num = $random(seed) % 100 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
-            denom = $random(seed) % 100 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+            if (BIN_POS < 32)
+            begin
+                num = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+                denom = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+            end
+            else
+            begin
+                num = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+                denom = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+            end
         end
     end
 endmodule

@@ -17,11 +17,18 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
 
     initial
     begin
-        $dumpfile("test_inv_waveform.vcd");
-        $dumpvars(0, test);
+        //$dumpfile("test_inv_waveform.vcd");
+        //$dumpvars(0, test);
         for (integer i = 0; i < MATRIX_SIZE*MATRIX_SIZE; i++)
         begin
-            matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+            if (BIN_POS < 32)
+            begin
+                matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+            end
+            else
+            begin
+                matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+            end
         end
     end
 
@@ -60,7 +67,14 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
 
             for (integer i = 0; i < MATRIX_SIZE*MATRIX_SIZE; i++)
             begin
-                matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+                if (BIN_POS < 32)
+                begin
+                    matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+                end
+                else
+                begin
+                    matrix[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+                end
             end
         end
     end

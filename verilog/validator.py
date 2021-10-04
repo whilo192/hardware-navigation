@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
- 
+
 import os
 import sys
 import subprocess
@@ -26,7 +26,7 @@ def hex_to_dec(hex_in, width, bin_pos):
     int_in = int(hex_in, 16)
 
     if int_in & (1 << (width-1)): #Sign bit high
-        int_in = int_in - (1 << width) 
+        int_in = int_in - (1 << width)
 
     return int_in / (2 ** bin_pos)
 
@@ -92,7 +92,7 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
 
     os.chdir("..")
 
-    lines = result.split('\n')[1:-1] # Trim line about VCD output
+    lines = result.split('\n')[0:-1]
 
     i = 0
 

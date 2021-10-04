@@ -17,12 +17,20 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter VE
 
     initial
     begin
-        $dumpfile("test_dot_waveform.vcd");
-        $dumpvars(0, test);
+        //$dumpfile("test_dot_waveform.vcd");
+        //$dumpvars(0, test);
         for (integer i = 0; i < VECTOR_SIZE; i++)
         begin
-            vec_a[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
-            vec_b[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+            if (BIN_POS < 32)
+            begin
+                vec_a[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+                vec_b[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+            end
+            else
+            begin
+                vec_a[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+                vec_b[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+            end
         end
     end
 
@@ -54,8 +62,16 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter VE
 
             for (integer i = 0; i < VECTOR_SIZE; i++)
             begin
-                vec_a[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
-                vec_b[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+                if (BIN_POS < 32)
+                begin
+                    vec_a[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+                    vec_b[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | $urandom(seed) % 2 ** BIN_POS;
+                end
+                else
+                begin
+                    vec_a[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+                    vec_b[i*WIDTH+:WIDTH] = $random(seed) % 10 <<< BIN_POS | ($urandom(seed) << (BIN_POS - 32));
+                end
             end
         end
     end
