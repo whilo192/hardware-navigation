@@ -1,0 +1,134 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% University Assignment Title Page 
+% LaTeX Template
+% Version 1.0 (27/12/12)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% WikiBooks (http://en.wikibooks.org/wiki/LaTeX/Title_Creation)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+% 
+% Modified for COSC480/490 by:
+% Lech Szymanski (8/3/18)
+
+\ProvidesPackage{cosc4x0style}[COSC480\/490 report style file]
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{enumitem}
+%\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+ 
+\let\@papercode\@empty
+\let\@supervisors\@empty
+\let\@reportdate\@empty
+\let\@studentid\@empty
+\let\@shorttitle\@empty
+\newcommand{\papercode}[1]{\gdef\@papercode{#1}}
+\newcommand{\supervisors}[1]{\gdef\@supervisors{#1}}
+\newcommand{\reportdate}[1]{\gdef\@reportdate{#1}}
+\newcommand{\studentid}[1]{\gdef\@studentid{#1}}
+\newcommand{\shorttitle}[1]{\gdef\@shorttitle{#1}}
+ 
+ 
+%\pagestyle{fancy}
+%\fancyhf{}
+%\rhead{\@author{} (\@studentid{})}
+%\lhead{\@shorttitle}
+%\rfoot{Page \thepage}
+
+
+% declare draft option, which enables todo notes
+\newif\if@draftmode\@draftmodefalse
+\DeclareOption{draft}{
+  \@draftmodetrue
+}
+
+\ProcessOptions\relax
+
+\if@draftmode
+  \RequirePackage{todonotes}
+\else
+  \RequirePackage[disable]{todonotes}
+\fi
+
+
+% create title
+\providecommand{\maketitle}{}
+\renewcommand{\maketitle}{%
+  \begin{titlepage}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % Defines a new command for the horizontal lines, change thickness here
+
+\center % Center everything on the page
+ 
+%----------------------------------------------------------------------------------------
+%	HEADING SECTIONS
+%----------------------------------------------------------------------------------------
+
+\textsc{\LARGE University of Otago}\\[1.5cm] 
+\textsc{\Large Department of Computer Science}\\[0.5cm] 
+\textsc{\large COSC\@papercode{} Project Report}\\[0.5cm] % TODO: Specify if it's a 480 or 490 project
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\HRule \\[0.4cm]
+{ \huge \bfseries \@title}\\[0.4cm]
+\HRule \\[1.5cm]
+ 
+%----------------------------------------------------------------------------------------
+%	AUTHOR SECTION
+%----------------------------------------------------------------------------------------
+
+\begin{minipage}{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Author:}\\
+\@author{} (\@studentid)
+\end{flushleft}
+\end{minipage}
+~
+\begin{minipage}{0.4\textwidth}
+\begin{flushright} \large
+\emph{Supervisor(s):} \\
+\@supervisors
+\end{flushright}
+\end{minipage}\\[2cm]
+
+%----------------------------------------------------------------------------------------
+%	DATE SECTION
+%----------------------------------------------------------------------------------------
+
+{\large \@reportdate}\\[1cm] % Date, change the \today to a set date if you want to be precise
+
+%----------------------------------------------------------------------------------------
+%	LOGO SECTION
+%----------------------------------------------------------------------------------------
+
+\includegraphics[width=3.5cm]{figures/logo.png}\\[1cm] % Includes a department logo - this will require the graphicx package
+ 
+%----------------------------------------------------------------------------------------
+
+\vfill % Fill the rest of the page with whitespace
+
+\end{titlepage}
+}
+
+% URL/ref/citation colours
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor = blue,
+    filecolor=magenta,      
+    urlcolor=blue
+}
+
+\endinput
