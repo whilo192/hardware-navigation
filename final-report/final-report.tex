@@ -75,8 +75,8 @@
 
 % Names of your supervisors, separated by line break '\\'
 \supervisors{
-	Dr.\@ David \textsc{Eyers}
-  	Dr.\@ Tim \textsc{Molteno} \\
+	Dr.\@ David \textsc{Eyers} \\
+  	Dr.\@ Tim \textsc{Molteno}
 }
 
 % Date, change the \today to a set date if you want to be precise
@@ -89,7 +89,7 @@
 
 \begin{abstract}
 
-With the surge in growth of the UAV (unmanned aerial vehicle) and smartphone industry, there continues to be significant demand for accurate and low power methods to measure and estimate orientation. The simplest method of estimating a device's orientation is by comparing the device's orientation to gravity, i.e.\@ by using accelerometers. This method is very easy to implement, however it becomes very inaccurate when the device is actually accelerating. To improve accuracy while the device is accelerating we can combine measurements from multiple sensors---such as gyroscopes and magnetometers---to calculate a more accurate estimate. This process is called ``sensor fusion'', and one of the most well known methods for performing sensor fusion is the Kalman filter. Unfortunately, the Kalman filter requires some fairly computationally expensive matrix mathematics, which limits potential performance, and results in greater than necessary power drain, when implemented in software. The existing software implementations are usually sufficient for their specific applications, however improving performance is always beneficial, and lowering power consumption is very important in devices that require recharging, such as mobile phones. My project explores the implementation of this in hardware, and the tradeoffs between hardware resource consumption and performance. In particular, hardware has significant flexibility in representation of numerical quantities, and the choices of representation affect the accuracy of the inferred orientation.
+With the surge in growth of the UAV (unmanned aerial vehicle) and smartphone industry, there continues to be significant demand for accurate and low power methods to measure and estimate orientation\notedme{maybe be explicit about the `physical' or similar, in case any reader first thinks `political', although that's unlikely...}. The simplest method of estimating a device's orientation is by comparing the device's orientation to gravity, i.e.\@ by using accelerometers. This method is very easy to implement, however it becomes very inaccurate when the device is actually accelerating. To improve accuracy while the device is accelerating we can combine measurements from multiple sensors---such as gyroscopes and magnetometers---to calculate a more accurate estimate. This process is called ``sensor fusion'', and one of the most well known methods for performing sensor fusion is the Kalman filter. Unfortunately, the Kalman filter requires some fairly computationally expensive matrix mathematics, which limits potential performance, and results in greater than necessary power drain, when implemented in software. The existing software implementations are usually sufficient for their specific applications, however improving performance is always beneficial, and lowering power consumption is very important in devices that require recharging, such as mobile phones. My project explores the implementation of this\notedme{say what `this' is} in hardware, and the tradeoffs between hardware resource consumption and performance. In particular, hardware has significant flexibility in representation of numerical quantities, and the choices of representation affect the accuracy of the inferred orientation.
 
 \end{abstract}
 
