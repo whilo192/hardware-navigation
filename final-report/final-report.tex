@@ -285,14 +285,16 @@ The other advantage hardware has over software is that it can be made very speci
 
 \subsection{Python Kalman Filter}
 
-The first phase of the project was getting a simple Kalman filter working. This was based on a simple one-dimensional cart moving backwards and forwards, with the measured quantity being position. In figure \ref{1d_position_fig} we can see the system handles both a fairly predictable motion as well as an unpredictable motion quite well. This is to be expected since we are measuring position, thus we expect the estimate of position to be fairly accurate (for obvious reasons). The estimate of velocity slowly converges to the actual velocity, however it has to re-converge after the bump. This is also expected since the bump was modelled as an impulse, which isn't a 100\% realistic scenario.
+The first phase of the project was getting a simple Kalman filter working. This was based on a simple one-dimensional cart moving backwards and forwards, with the measured quantity being position. In figure \ref{1d_position_fig} we can see the system handles both a fairly predictable motion as well as an unpredictable motion quite well. 
+\notedme{Probably best to include a description of the experiment in the body text too, rather than relying on the caption.}
+This is to be expected since we are measuring position, thus we expect the estimate of position to be fairly accurate (for obvious reasons). The estimate of velocity slowly converges to the actual velocity, however it has to re-converge after the bump. This is also expected since the bump was modelled as an impulse, which isn't a 100\% realistic scenario.
 
 \begin{figure}[thp]
 	\centering
 	
-	\includegraphics[width=\textwidth]{1d-position.pdf}
+	\fbox{\includegraphics[height=0.8\textheight]{1d-position.pdf}}
 	
-	\caption{A cart moving backwards and forwards, with a slight tendency to move in the positive direction. The cart is ``bumped'' at $t=5$, where we see the error of the velocity increase, until it settles down into a new equilibrium.}
+	\caption{A cart moving backwards and forwards, with a slight tendency to move in the positive direction. The cart is ``bumped'' at $t=5$, where we see the error of the velocity increase, until it settles down into a new equilibrium.\notedme{needs more work to fit on page: remove the fbox I added, but I'm using the fbox around your PDF to demonstrate that your PDFs include a white border that you want to remove. You also need to ensure there's enough space on the page for the figure and the caption. The \LaTeX{} log file will indicate if the content fits.}}
 	\label{1d_position_fig}
 \end{figure}
 
@@ -301,7 +303,7 @@ The next system was the same as before except the velocity was measured, and the
 \begin{figure}[thp]
 	\centering
 	
-	\includegraphics[width=\textwidth]{1d-velocity.pdf}
+	\includegraphics[height=0.8\textheight]{1d-velocity.pdf}
 	
 	\caption{Here we see the estimate of the state continue to be fairly accurate, even when faced with an unconstrained motion in the positive direction.}
 	\label{1d_velocity_fig}
@@ -327,7 +329,7 @@ From this we can also demonstrate how sensor and model noise affect the accuracy
 
 If we run multiple iterations of the three dimensional scenario, altering the amount of noise added to the measurements and system each time, we can calculate the RMS of the error values and plot that against that noise figure, as shown in figure \ref{3d_rms_fig}.
 
-\begin{figure}[thp]
+\begin{figure}[tp]
 	\centering
 	
 	\includegraphics[width=\textwidth]{3d-rms.pdf}
@@ -337,12 +339,12 @@ If we run multiple iterations of the three dimensional scenario, altering the am
 	\label{3d_rms_fig}
 \end{figure}
 
-Here we see linear growth (with some noise)---as we make the simulated sensors more noisy the quality of the output goes down. We can see the effect of this noise in figure \ref{3d_noise_fig}---where the noise is five times greater than in figure \ref{3d_orient_fig}.
+Here we see linear growth (with some noise)---as we make the simulated sensors more noisy the quality of the output goes down. We can see the effect of this noise in figure~\ref{3d_noise_fig}---where the noise is five times greater than in figure~\ref{3d_orient_fig}.
 
 \begin{figure}[thp]
 	\centering
 	
-	\includegraphics[width=\textwidth]{3d-orientation-noisy.pdf}
+	\includegraphics[height=0.8\textheight]{3d-orientation-noisy.pdf}
 	
 	\caption{The filter performing much worse---but the error is still bounded---and the shape of the periodic curves does approximately match reality.}
 	\label{3d_noise_fig}
@@ -350,28 +352,29 @@ Here we see linear growth (with some noise)---as we make the simulated sensors m
 
 \subsection{Verilog Implementation}
 
-As we have seen in \ref{recursion_space}, the amount of Verilog code required to perform a moderately complicated mathematical operation is quite vast.
+As can be seen in \ref{recursion_space}, the amount of Verilog code required to perform a moderately complicated mathematical operation is quite vast.
 
-The $4\times4$ code I show could be written by hand fairly easily, however this would not be possible for the $12\times12$ matrix required for three dimensions each of orientation, acceleration, angular velocity, and the magnetic field vector---even a $9\times9$ version took up 40 slides in beamer.
+The $4\times4$ code I show could be written by hand fairly easily, however this would not be possible for the $12\times12$ matrix required for three dimensions each of orientation, acceleration, angular velocity, and the magnetic field vector---even a $9\times9$ version took up 40 slides in Beamer.
 
 The solution is to automatically generate the Verilog code in software---this is the approach I used for the code in \ref{recursion_space}. This is not a trivial task but it is significantly easier to write a few hundred lines of Python than 20 KiB of Verilog.
 
 So far, I have a reliable tool to generate the Verilog for calculating the determinant of arbitrarily sized matrices (with the maximum size specified when the Verilog is generated). I have also created a testbench module and associated Python script to confirm that it is, in fact, reliable.
+\notedme{Add text describing how you're checking the result is reliable. You proceed to talk about 8-bit and 16-bit number representations without having let the reader know why this sort of size selection of numbers is necessary and/or useful.}
 
-The testbench model gives the following output when the matrix values are between -10 and +10, and all numbers are 8 bits long, for $2\times2$ matrices. It outputs information when the result from Icarus differs from what Python's \lstinline|numpy| library expects. Here we can see the module failing occasionally due to integer overflow, note that in each case, if we flip all the bits in the numbers labelled ``Parsed matrix determinant" and add one, then the number will be (when interpreted as a two's compliment number) the same as the number labelled ``Icarus determinant":
+The testbench model gives the following output when the matrix values are between -10 and +10, and all numbers are 8 bits long, for $2\times2$ matrices. It outputs information when the result from Icarus differs from what Python's \lstinline|numpy| library expects. Here we can see the module failing occasionally due to integer overflow, note that in each case, if we flip all the bits in the numbers labelled ``Parsed matrix determinant'' and add one, then the number will be (when interpreted as a two's compliment number) the same as the number labelled ``Icarus determinant'': \notedme{Note closing quotes are '' and not " as you are sometimes using.}
 
 \lstinputlisting[numbers=none, backgroundcolor=\color{white}]{testbench-output-28.txt}
 
 With 16-bit numbers, all 1000 runs for the $2\times2$ matrices succeed. For a $6\times6$ matrix, 24-bit numbers are needed. If the range of matrix values is increased to -100 to 100 then 48 bits are required for a $6\times6$ matrix, and 16 bits are required for a simple $2\times2$ matrix. For a $12\times12$ matrix with numbers ranging from 0 to 10, similar to what I would expect to see in a Kalman filter, 128-bit numbers are required.
 
-We can see this in the figures \ref{full_heat} and \ref{full_sfc}. What we can see is that the integer width needs to be sufficient to prevent overflow, and no more, i.e.\@ there is no benefit to using larger integer components. This is in contrast to the decimal component, where we see that increasing that reduces error linearly, until about 56 bits.
+We can see this in the figures \ref{full_heat} and \ref{full_sfc}. What we can see is that the integer width needs to be sufficient to prevent overflow, and no more, i.e.\@ there is no benefit to using larger integer components. This is in contrast to the decimal component, where we see that increasing that size reduces error linearly, until about 56 bits.
 
 \begin{figure}[thp]
 	\centering
 	
 	\includegraphics[width=\textwidth]{heatmap_full.pdf}
 	
-	\caption{A heat-map of the base 10 $\log$ of the average error of the determinant (when compared to the result from \lstinline|numpy|), after 10 runs for a $12 \times 12$ matrix}.
+	\caption{A heat-map of the base 10 $\log$ of the average error of the determinant (when compared to the result from \lstinline|numpy|), after 10 runs for a $12 \times 12$ matrix. \notedme{Nice! Can you flip the label colour to black on the lighter couloured squares?}}
 	\label{full_heat}
 \end{figure}
 
@@ -384,11 +387,11 @@ We can see this in the figures \ref{full_heat} and \ref{full_sfc}. What we can s
 	\label{full_sfc}
 \end{figure}
 
-My first implementation of the matrix operations was using the naive algorithms, as described in section \ref{naive}. This implementation worked, however when it came to simulating the Verilog, both the determinant, and even more so the inverse took a very long time for the $12 \times 12$ case. I had estimated that simulating the $12 \times 12$ inverse would take about a whole day, and also be far to time consuming to implement in practice. As a result of this, I turned to the LU decomposition, as discussed in section \ref{lu}. Due to time constraints, I was only to implement the ``half-naive'' inverse, however this alone made a huge difference: The simulation time dropped to 10 minutes. In addition, the predicted performance wasn't too bad - about 2.5 million clock cycles. On a 100 MHz FPGA this could do 40 operations per second. Since there is only one inverse per Kalman Filter cycle, and the inverse operation takes the longest by far of all of the operations, I would expect to be able to run about 40 Kalman filter cycles per second, which would be sufficient for real time operation. This is not ideal however, so a future work goal would to implement the full use of the LU decomposition for the matrix inverse. This would reduce the runtime from $\mathcal{O}(n^5)$ to $\mathcal{O}(n^3)$, i.e. for a $12 \times 12$ matrix it would take 144 times less. That would mean only around 20,000 clock cycles, or over 5,500 Kalman Filter cycles per second. 
+My first implementation of the matrix operations was using the naive algorithms, as described in section \ref{naive}. This implementation worked, however when it came to simulating the Verilog, both the determinant, and even more so the inverse took a very long time for the $12 \times 12$ case. I had estimated that simulating the $12 \times 12$ inverse would take about a whole day, and also be far to time consuming to implement in practice. As a result of this, I turned to the LU decomposition, as discussed in section \ref{lu}. Due to time constraints, I was only to implement the ``half-naive'' inverse, however this alone made a huge difference: The simulation time dropped to 10 minutes. In addition, the predicted performance wasn't too bad---about 2.5 million clock cycles \change{to complete an operation}. On a 100 MHz FPGA this could do 40 operations per second. Since there is only one inverse per Kalman Filter cycle, and the inverse operation takes the longest by far of all of the operations, I would expect to be able to run about 40 Kalman filter cycles per second, which would be sufficient for real time operation. This is not ideal however, so a future work goal would to implement the full use of the LU decomposition for the matrix inverse. This would reduce the runtime from $\mathcal{O}(n^5)$ to $\mathcal{O}(n^3)$, i.e.\@ for a $12 \times 12$ matrix it would take 144 times less \notedme{a bit confusingly expressed here, although the next sentence is clear}. That would mean only around 20,000 clock cycles, or over 5,500 Kalman Filter cycles per second. 
 
 \subsubsection{Synthesis and Implementation}
 
-Due to time constraints I was not in a position to put a final bitstream on an FPGA, however I was able to synthesize it, and place and route it, based on the target device being a Xilinx Artix-7 XC7A100TCSG324, shown in figure \ref{tim_xilinx}.
+Due to time constraints I was not in a position to put a final bitstream on an FPGA, however I was able to synthesize it, and place and route it, based on the target device being a Xilinx Artix-7 XC7A100TCSG324, shown in figure~\ref{tim_xilinx}.
 
 \begin{figure}[thp]
 	\centering
@@ -407,6 +410,8 @@ Certain specific tasks that could be done in future include
 	\item Have the matrix operations actually make a Kalman filter, and interface it with sensors.
 	\item Change the matrix inverse module to directly use the matrix LU module.
 \end{itemize}
+
+\notedme{Can you put in a conclusion? It might be nice to synthesise (in the knowledge sense, not the HDL sense) where you got to in the project, e.g., where the unexpected difficulties arose. I feel that you made excellent progress, but (as is usually the case) had to diverge from your original plan due to various unforeseen complexities and issues. You've then turned the project around to produce some really good thorough results, such as the heatmap+plot of precision and accuracy tradeoffs, and quantifying the value of the LRU replacement algorithms.}
 
 \printbibliography
 
