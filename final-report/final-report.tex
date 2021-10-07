@@ -75,8 +75,8 @@
 
 % Names of your supervisors, separated by line break '\\'
 \supervisors{
-	Dr.\@ David \textsc{Eyers}
-  	Dr.\@ Tim \textsc{Molteno} \\
+	Dr.\@ David \textsc{Eyers} \\
+  	Dr.\@ Tim \textsc{Molteno}
 }
 
 % Date, change the \today to a set date if you want to be precise
@@ -89,22 +89,24 @@
 
 \begin{abstract}
 
-With the surge in growth of the UAV (unmanned aerial vehicle) and smartphone industry, there continues to be significant demand for accurate and low power methods to measure and estimate orientation. The simplest method of estimating a device's orientation is by comparing the device's orientation to gravity, i.e.\@ by using accelerometers. This method is very easy to implement, however it becomes very inaccurate when the device is actually accelerating. To improve accuracy while the device is accelerating we can combine measurements from multiple sensors---such as gyroscopes and magnetometers---to calculate a more accurate estimate. This process is called ``sensor fusion'', and one of the most well known methods for performing sensor fusion is the Kalman filter. Unfortunately, the Kalman filter requires some fairly computationally expensive matrix mathematics, which limits potential performance, and results in greater than necessary power drain, when implemented in software. The existing software implementations are usually sufficient for their specific applications, however improving performance is always beneficial, and lowering power consumption is very important in devices that require recharging, such as mobile phones. My project explores the implementation of this in hardware, and the tradeoffs between hardware resource consumption and performance. In particular, hardware has significant flexibility in representation of numerical quantities, and the choices of representation affect the accuracy of the inferred orientation.
+With the surge in growth of the UAV (unmanned aerial vehicle) and smartphone industry, there continues to be significant demand for accurate and low power methods to measure and estimate orientation\notedme{maybe be explicit about the `physical' or similar, in case any reader first thinks `political', although that's unlikely...}. The simplest method of estimating a device's orientation is by comparing the device's orientation to gravity, i.e.\@ by using accelerometers. This method is very easy to implement, however it becomes very inaccurate when the device is actually accelerating. To improve accuracy while the device is accelerating we can combine measurements from multiple sensors---such as gyroscopes and magnetometers---to calculate a more accurate estimate. This process is called ``sensor fusion'', and one of the most well known methods for performing sensor fusion is the Kalman filter. Unfortunately, the Kalman filter requires some fairly computationally expensive matrix mathematics, which limits potential performance, and results in greater than necessary power drain, when implemented in software. The existing software implementations are usually sufficient for their specific applications, however improving performance is always beneficial, and lowering power consumption is very important in devices that require recharging, such as mobile phones. My project explores the implementation of this\notedme{say what `this' is} in hardware, and the tradeoffs between hardware resource consumption and performance. In particular, hardware has \notedme{Maybe be more specific about your role here, and not just the property of hardware, e.g., something like ``A useful aspect of working with a hardware design is the flexibility afforded in terms of choosinng how to represent numerical quantities.'' then go on to talk about that accuracy.} significant flexibility in representation of numerical quantities, and the choices of representation affect the accuracy of the inferred orientation.
 
 \end{abstract}
 
 \section{Introduction}
 
-The sales of cell phones may have slowed down in recent years, but still exceeds one billion units sold per year \cite{Mongardini_2020}. The smartphone market is only one example of an area that requires accurate orientation data to operate correctly, e.g.\@ for augmented reality applications. State estimation using the Kalman filter is still considered the ``go-to'' approach to solving this problem, due to its simplicity and good performance, however many solutions continue to do this mostly in software \cite{ayub_2012}. This isn't ideal from an efficiency standpoint, since software---while being very flexible---is not particular power efficient or fast. This is simply because modern CPUs can only run one instruction at a time (unless it is a multi core CPU). All of the advancements in modern CPU performance have been about getting around that limit, with technologies such as SMT, SIMD instructions (such as AVX), branch prediction\footnote{Which turned out to cause more problems than it solved}, and microcode. CPUs also have huge overhead (in terms of complexity) when it comes to getting instructions in place to execute, contributing to greater power use. Several hardware-based approaches have been developed, however they are either too complex \cite{mills_2016} to be synthesised to a cheap FPGA, or are encumbered with intellectual property restrictions\footnote{Such as this one from Altera: \url{https://www.intel.com/content/dam/www/programmable/us/en/pdfs/literature/ds/extended_kalman_filter.pdf}}. I aim to produce a design that can be synthesised to any FPGA that is of a reasonable size, and interface it with sensors to give an estimate of orientation.
+\notedme{I'd suggest starting with a sentence that is more directly relevant to your work.}
+The sales of cell phones may have slowed down in recent years, but still exceeds one billion units sold per year \cite{Mongardini_2020}. The smartphone market is only one example of an area that requires accurate orientation data to operate correctly, e.g.\@ for augmented reality applications. State estimation using the Kalman filter is still considered the ``go-to'' approach to solving this problem, due to its simplicity and good performance, however many solutions continue to do this mostly in software \cite{ayub_2012}. This isn't ideal from an efficiency standpoint, since software implementations---while being very flexible---are not particular power efficient or fast. This is simply because modern CPUs can only run one instruction at a time (unless it is a multi-core CPU \notedme{Or Hyperthreading, or multiple pipelines (common), or... I'd say the norm is CPUs running multiple instructions at a time.} ). All of the advancements in modern CPU performance have been about getting around that limit \notedme{not true?}, with technologies such as SMT, SIMD instructions (such as AVX), branch prediction\footnote{Which turned out to cause more problems than it solved \notedme{give context}}, and microcode \notedme{What do you mean? The CISC $\to$ RISC internal decomposition?}. CPUs also have huge overhead (in terms of complexity) when it comes to getting instructions in place to execute \notedme{I don't understand?}, contributing to greater power use. Several hardware-based approaches have been developed, however they are either too complex \cite{mills_2016} to be synthesised to a cheap FPGA, or are encumbered with intellectual property restrictions\footnote{Such as this one from Altera: \url{https://www.intel.com/content/dam/www/programmable/us/en/pdfs/literature/ds/extended_kalman_filter.pdf}}. I aim to produce a design that can be synthesised to any FPGA that is of a reasonable size, and interface it with sensors to give an estimate of orientation.
 
-The primary motivation behind this is reduced power consumption, although there will be an increase in performance as well. Most software Kalman filter implementations are already ``good enough'', i.e.\@ the reported data is sufficiently accurate for their application's target domain, however there is always the potential to do better. In addition, an increase in performance could be used to justify lowering the data input frequency, which would further lower power consumption. Moving the Kalman filter to hardware would also increase flexibility, allowing the CPU cycles that were used running the Kalman filter in software to do more useful work.
+The primary motivation behind this \notedme{replace `this' with a specific noun} is reduced power consumption, although there will be an increase in performance as well. Most software Kalman filter implementations are already ``good enough'', i.e.\@ the reported data is sufficiently accurate for their application's target domain, however there is always the potential to do better \notedme{not clear whether you mean in terms of precision, power, or both? or more aspects?}. In addition, an increase in performance could be used to justify lowering the data input frequency, which would further lower power consumption. Moving the Kalman filter to hardware would also increase flexibility, allowing the CPU cycles that were used running the Kalman filter in software to do more useful work.
 
 \section{Background}
 
-I would like to start by introducing the Kalman filter and Hardware Description languages, to give some background to my project. I would also like to comment on the typical differences between software and hardware solutions to problems in order to give some context for why hardware implementations tend to perform better than software implementations.
+I would like to start by introducing the Kalman filter and Hardware Description languages \notedme{Check upper/lowercase of `languages' if implying HDL, in which case put HDL in parentheses here.}, to give some background to my project. I would also like to comment on the typical differences between software and hardware solutions to problems in order to give some context for why hardware implementations tend to perform better \notedme{in what sense?} than software implementations.
 
 \subsection{Inertial Measurement Units}
 
+\notedme{Surprisingly short subsection. Should `Sequential Inference' be a subsubsection?}
 An inertial measurement unit is a device which reports the acceleration and angular velocity of an object, typically by using accelerometers and gyroscopes. When combined with post-processing they can also report on the device's orientation. One method for integrating multiple sources and updating the understanding of the system is through sequential inference.
 
 \subsection{Sequential Inference}
@@ -132,7 +134,7 @@ The significance of being based off of Bayes's Theorem is that it means that equ
 
 \subsubsection{Kalman Filter}
 
-The Kalman filter \cite{kalman_1960} is one of the most popular solutions for estimating the state (e.g.\@ orientation) of a system from multiple noisy sensors, due to its relative simplicity while still performing optimally \cite{wangyan_2015}. It works by using a model of the system to predict the future state of that system, and then (after some time step), comparing that predicted state to the measured state.
+The Kalman filter \cite{kalman_1960} is one of the most popular solutions for estimating the state (e.g.\@ orientation) of a system from multiple noisy sensors, due to its relative simplicity while still performing optimally \cite{wangyan_2015} \notedme{Maybe wrong wording: if it performs optimally then there'd never be a need to use anything else...}. It works by using a model of the system to predict the future state of that system, and then (after some time step), comparing that predicted state to the measured state.
 
 The first two steps are to predict how the system will evolve:
 \begin{eqnarray}
@@ -170,7 +172,7 @@ Thus we have a mechanism to have our estimate of the state optimally track the a
 \subsubsection{Naive Matrix Algorithms}
 \label{naive}
 
-For this project, the required matrix operations are
+For this project, the required matrix operations are:
 
 \begin{itemize}
 	\item Multiplication (by a vector or other matrix)
@@ -192,40 +194,42 @@ The two more difficult operations are the determinant and inverse. The naive mat
 	\end{cases}
 \end{equation}
 
+\noindent
 where $\mathbf{A}^{ij}$ means the matrix $\mathbf{A}$, but excluding row $i$ and column $j$. To give an estimate of complexity, a $4\times4$ matrix would require four $3\times3$ matrix determinants to be calculated, and each one of those would require three $2\times2$ matrix determinants to be calculated. Thus this is $\mathcal{O}(n!)$ (where $n$ is the amount of rows in the matrix), i.e.\@ very slow.
 
-The inverse is even more complicated: 
+The inverse is even more complicated: \notedme{Looks like RHS is a scalar, to me?}
 \begin{equation}
-	\mathbf{A}^{-1} = \frac{1}{\det{\mathbf{A}}} (\sum_{i=1}^{n} \sum_{j=1}^{n} a_{ij} (-1)^{i+j} \det{\mathbf{A}^{ij}})^T
+	\mathbf{A}^{-1} = \frac{1}{\det{\mathbf{A}}} \left(\sum_{i=1}^{n} \sum_{j=1}^{n} a_{ij} (-1)^{i+j} \det{\mathbf{A}^{ij}}\right)^T
 \end{equation}
+\noindent
+and is also $\mathcal{O}(n!)$.
 
-This is also $\mathcal{O}(n!)$.
-
-These are fine for small matrices, however for this project I am targeting a $12 \times 12$ matrix. Thus, assuming a $2\times2$ matrix takes one time step, a $12 \times 12$ would take $\frac{12!}{2!} \approx 2.4 \times 10^8$ time steps. This is obviously unacceptable if we expect a Kalman Filter based off of this to operate in real time\footnote{Or in any reasonable time at all. I estimated it would take a day to even simulate the $12\times12$ matrix inverse testbench.}.
+These are OK for small matrices, however for this project I am targeting a $12 \times 12$ matrix. Thus, assuming a $2\times2$ matrix takes one time step, a $12 \times 12$ would take $\frac{12!}{2!} \approx 2.4 \times 10^8$ time steps. This is obviously unacceptable if we expect a Kalman Filter based off of this to operate in real time\footnote{Or in any reasonable time at all. I estimated it would take a day to even simulate the $12\times12$ matrix inverse testbench. \notedme{first instance of the term `testbench'---explaining what this is should have already appeared in the body text}}.
 
 \subsubsection{Better Matrix Algorithms}
 \label{lu}
 
+\notedme{Rework this paragraph. You clearly understand what's going on, so that's good. However, I'd say bring the footnote into the body text, and provide an explanation before you use the maths. E.g., you use $\mathbf{L}$ and $\mathbf{U}$ before you've said what they mean... also make a macro for transpose: you're using inconsistent forms at the moment.}
 Thankfully there are better ways\footnote{This is very common with numerical methods, often the more intuitive methods are mathematically ``cleaner'', however they tend to be slower, or more numerically unstable, than the less intuitive but more optimised algorithms.}. Imagine we could factor $\mathbf{A} = \mathbf{L}\mathbf{U}$. Thus $\det(\mathbf{A}) = \det(\mathbf{L^T}) \det(\mathbf{U})$, since $\det(\mathbf{AB}) = \det(\mathbf{A}) \det(\mathbf{B})$, and $\det(\mathbf{A}^T) = \det(\mathbf{A})$. Thus,  if $\mathbf{L}$ is lower triangular (such that $\mathbf{L}^T$ is upper triangular), and $\mathbf{U}$ is upper triangular, and all the diagonal entries in $\mathbf{L}$ are $1$, then we can work out $\det{\mathbf{A}}=\sum_{i=1}^{n}u_{ii}$, since the determinant of an upper triangular matrix is just the product of the diagonal entries\footnote{The reason for this is that if--when calculating the determinant the naive way---we use the left column for the multiplication factors, as opposed to the top row, then only the upper left of each sub-determinant we have to calculate will be non-zero, thus we only have to calculate one determinant for each iteration of the recursion, and multiply it by that value on the diagonal. When we reach the base $2\times2$ case, the bottom left value will be zero, thus the determinant will be the product of the two diagonal elements. Thus as we work back from the bottom of the recursion we only ever multiply the values on the diagonal.}. This means calculating the determinant is $\mathcal{O}(n)$, which is a huge improvement.
 
 Working out the inverse is simple. If $\mathbf{AX}=\mathbf{I}$, then we know $\mathbf{A}^{-1} = \mathbf{X}$. This is just solving $\mathbf{LUx}=\mathbf{i}$ $n$ times, where $\mathbf{x}$ is the $n$\textsuperscript{th} column of $\mathbf{X}$ and where $\mathbf{i}$ is the $n$\textsuperscript{th} column of $\mathbf{I}$. This is incredibly straightforward, since $\mathbf{L}$ and $\mathbf{U}$ are upper triangular, thus we can use forward and back substitution to solve this as two sets of simultaneous equations. This is $\mathcal{O}(n^3)$, since all three operations are linear.
 
 Of course this all assumes that working out $L$ and $U$ is simple.
 
-This process is called the ``LU Decomposition''\cite{lu_decomposition}. It also provides a third matrix, $\mathbf{P}$, the permutation matrix. This is because the LU decomposition is based off of Gaussian elimination, which may require swapping rows, and thus to rebuild $\mathbf{A}$ from $\mathbf{L}$ and $\mathbf{U}$ we need to know which rows were swapped, thus $\mathbf{PA}$ = $\mathbf{LU}$. The details of the LU decomposition are unimportant, beyond that it involves Gaussian elimination, however what is important to note is that the LU decomposition is $\mathcal{O}(n^3)$. Since the inversion or determinant steps come after the LU decomposition, the complexity is added, not multiplied. Thus calculating the determinant and inverse is still only $\mathcal{O}(n^3)$ i.e. polynomial.
+This process is called the ``LU Decomposition''\cite{lu_decomposition}. It also provides a third matrix, $\mathbf{P}$, the permutation matrix. This is because the LU decomposition is based off of Gaussian elimination, which may require swapping rows, and thus to rebuild $\mathbf{A}$ from $\mathbf{L}$ and $\mathbf{U}$ we need to know which rows were swapped, thus $\mathbf{PA}$ = $\mathbf{LU}$. The details of the LU decomposition are unimportant, beyond that it involves Gaussian elimination, however what is important to note is that the LU decomposition is $\mathcal{O}(n^3)$. Since the inversion or determinant steps come after the LU decomposition, the complexity is added, not multiplied. Thus calculating the determinant and inverse is still only $\mathcal{O}(n^3)$ i.e.\@ polynomial.
 
-One corollary of the above is this: We can still implement the naive inverse using the better determinant. Since the naive inverse requires $n^2$ determinants (of size $n-1 \times n-1$, which is still $\mathcal{O}(n^3)$), this means that this half-naive approach is $\mathcal{O}(n^5)$. This is still significantly better than $\mathcal{O}(n^!)$, and I will discuss this more later in this report.
+One corollary of the above is this: We can still implement the naive inverse using the better determinant. Since the naive inverse requires $n^2$ determinants (of size $n-1 \times n-1$, which is still $\mathcal{O}(n^3)$), this means that this half-naive approach is $\mathcal{O}(n^5)$. This is still significantly better than $\mathcal{O}(n!)$, and I will discuss this aspect more later in this report.
 
 In addition to the LU decomposition there is also the QR decomposition, and the singular value decomposition (SVD)\cite{num_lin_alg}. The QR decomposition was not chosen because it is slightly slower that the LU decomposition (about twice as slow), and the SVD was not chosen because it is harder to implement, and because it is more suited to solving homogenous equations (i.e\@ those of the form $\mathbf{A}\mathbf{x}=\mathbf{0}$), or, if there is no such $\mathbf{x}$ that satisfies that equation, then it can also be used to solve the ``least-squares'' problem, where we want to find the $\mathbf{x}$ which minimises $||\mathbf{Ax}||_2$ (the 2-norm of $\mathbf{Ax}$, for a vector this will be the magnitude). This is extremely important (and with the SVD, very fast), however this is not relevant to this project.
 
 \subsection{Hardware Description Languages}
 
-The 1975 MOS Technology 6502 consisted of approximately 3500 transistors. This is a comprehensible size, in that it is entirely possible to imagine it being designed by hand. On the other hand, the first CPU to introduce the x86 instruction set was the Intel 8086 back in 1978, made from some 29,000 transistors. An Intel Nehalem CPU from 12 years ago contains upwards of 750 million transistors. AMD's ``Epyc'' lineup of server CPUs contain up to 50 billion transistors per CPU. These would either be difficult and time consuming to design by hand (in the case of the 8086), or downright impossible to design by hand (the modern Nehalem and Epyc Rome CPUs). Thus it was the development of Hardware Description Languages (HDLs) which enabled us to make our huge modern integrated circuits in a reliable fashion.
+The 1975 MOS Technology 6502 consisted of approximately 3500 transistors. This is a comprehensible size, in that it is entirely possible to imagine it being designed by hand. On the other hand, the first CPU to introduce the x86 instruction set was the Intel 8086 back in 1978, made from some 29,000 transistors. An Intel Nehalem CPU from 12 years ago contains upwards of 750 million transistors. AMD's ``Epyc'' lineup of server CPUs contain up to 50 billion transistors per CPU. These would either be difficult and time consuming to design by hand (in the case of the 8086), or downright impossible to design by hand (the modern Nehalem and Epyc Rome CPUs). Thus it was the development of Hardware Description Languages (HDLs) that enabled us to make our huge modern integrated circuits in a reliable fashion.
 
-If I write a program in a language such as C, and target a conventional architecture, such as ARM or x86, then the code that I write is not the actual program---it only describes the program. For example, no CPUs contain a for loop instruction---a for loop in C is converted into (some variation of) a label, a comparison, and a conditional jump to the position described by that label. The process of turning the description of the program to the actual program is ``compilation'', and this is well understood.
+If I write a program in a language such as C, and target a conventional architecture, such as ARM or x86, then the code that I write is not the actual program---it only describes the program. For example, no CPUs contain a `for loop' instruction---a `for loop' in C is converted into (some variation of) a label, a comparison, and a conditional jump to the position described by that label. The process of turning the description of the program to the actual program is ``compilation'', and this is well understood.
 HDLs are the hardware equivalent of high level programming language---they do not describe logic gates and how they are connected, however they describe the behaviour of the hardware in a way such that it can be ``synthesised'' to the actual logic. For example, instead of having to describe each individual gate and connection in an adder, the designer can simply type \lstinline[language=Verilog]|a + b| and the synthesiser will generate the appropriately sized adder from that.
 
-This can of course be used for more complex problems. For example, designing a minimal\footnote{Designing a useful CPU is more complicated but entirely achievable---this one can even boot linux: \url{https://github.com/ultraembedded/biriscv}} CPU in an HDL is almost trivial---all it needs is a suitably large array (to act as memory), and a few \lstinline[language=Verilog]|if| statements to determine what to do with each opcode.
+This can of course be used for more complex problems. For example, designing a minimal\footnote{Designing a useful CPU is more complicated but entirely achievable---this one can even boot inux: \url{https://github.com/ultraembedded/biriscv}} CPU in an HDL is almost trivial---all it needs is a suitably large array (to act as memory), and a few \lstinline[language=Verilog]|if| statements to determine what to do with each opcode.
 
 In a few hours, I was able to design such a minimal CPU\footnote{I want emphasise here just how minimal this CPU is---inefficient, doesn't support a stack, no registers, no signed integers, no floating point numbers etc.\@---it is just a toy to show what can be done with HDLs such as Verilog.} (using an HDL called ``Verilog''), in only around 150 lines of code (which is included in \ref{verilog_cpu}). This code also creates a small block of memory, into which I and in that memory some instructions. Those instructions are (in plain English):
 
@@ -236,30 +240,30 @@ In a few hours, I was able to design such a minimal CPU\footnote{I want emphasis
 	\item If the value at memory address \texttt{0xf0} is 0, then jump to instruction 7.
 	\item Subtract the value at memory address \texttt{0xf1} from the value at \texttt{0xf0}, and store it at \texttt{0xf0}.
 	\item Jump to instruction 3.
-	\item Jump to instruction 7 (this instruction, i.e. halt).
+	\item Jump to instruction 7 (this instruction, i.e.\@ halt).
 \end{enumerate}
 
 In other words, it counts down from 16 to 0. We can see this in the output from when the CPU and testbench is simulated (each line below is from instruction 3 above):
 
 \lstinputlisting[numbers=none, backgroundcolor=\color{white}]{cpu-bench-result.txt}
 
-In other words, it is a perfectly functioning CPU with its own machine language code, which supports very basic port-mapped I/O, unconditional and conditional branching, and basic unsigned integer arithmetic---in around 100 lines of code.
+In other words, it is a perfectly functioning CPU \notedme{Perhaps better to make reference to Turing completeness?} with its own machine language code, which supports very basic port-mapped I/O, unconditional and conditional branching, and basic unsigned integer arithmetic---in around 100 lines of code.
 
 \subsubsection{Icarus Verilog}
 
 Like all code, code written in HDLs such as Verilog needs to be tested to ensure that bugs are found and fixed before the hardware is manufactured. It is entirely possible to synthesise the Verilog to an FPGA and perform the tests on the FPGA, however this is difficult to automate, since it requires interfacing with external hardware. If all we want to do is simple verification that the Verilog we wrote is correct, then we can just simulate the Verilog in software and automatically check that the code behaves as we expect.
 
-One tool for this is Icarus Verilog (Icarus), which is available under the GNU General Public License (GPL). With Icarus, I can simply create a testbench module, and run automated tests on any Verilog code I write or generate. I used this same approach to simulate the CPU that I presented earlier---the code in the \lstinline[language=Verilog]|cpu_test| module is not synthesisable (i.e.\@ it can't be turned into an actual circuit), however Icarus is able to parse it and use it to simulate the \lstinline[language=Verilog]|cpu| module (which is synthesisable).
+One tool for this is Icarus Verilog (Icarus), which is available under the GNU General Public License (GPL). With Icarus, I can simply create a testbench module, and run automated tests on any Verilog code I write or generate. I used this same approach to simulate the CPU that I presented earlier---the code in the \lstinline[language=Verilog]|cpu_test| module is not synthesisable (i.e.\@ it can't be turned into an actual circuit \notedme{Possibly say why... although this s low-priority.}), however Icarus is able to parse it and use it to simulate the \lstinline[language=Verilog]|cpu| module (which is synthesisable).
 
 \subsection{Hardware vs.\@ Software Considerations}
 
 Many common operations on large matrices can be defined recursively, such as the determinant of an $n \times n$ matrix being a function of the determinants of its $(n-1) \times (n-1)$ minor matrices. Recursive algorithms are fairly simple to express mathematically and can be rather intuitive, however many implementations of these recursive algorithms introduce inefficiencies, such as calculating the same value multiple times. One example of this is the Fibonacci sequence:
 
-\begin{eqnarray}
-	F_0&&= 0 \\
-	F_1&&= 1 \\
-	F_n&&= F_{n-1} + F_{n-2}
-\end{eqnarray}
+\begin{align}
+	F_0 &= 0 \\
+	F_1 &= 1 \\
+	F_n &= F_{n-1} + F_{n-2}
+\end{align}
 
 \noindent Calculating $F_4$ requires knowing $F_3$ and $F_2$, but the calculation of $F_3$ also requires knowing $F_2$. This means that we need to calculate $F_2$ at least twice, which is an inefficient use of time---and we have to wait until $F_2$ is determined before we can even start to calculate $F_3$. The first problem can be solved using techniques such as memoisation, however the second problem is inherent in software, since the CPU (assuming it is something mainstream like x86 or ARM) needs to perform one instruction after another\footnote{Modern CPUs have multiple cores, and many support simultaneous multithreading, which allow some parallelism, but still nowhere near as much as even a \$5.00 dollar FPGA}, creating a dependency in time between the calculation of $F_3$ and $F_2$, as shown in figure \ref{fib_block}.
 
@@ -274,22 +278,25 @@ Many common operations on large matrices can be defined recursively, such as the
 
 Hardware solves this problem by moving the time dependency into a spatial dependency---we can create several Fibonacci modules, and wire them into each other, e.g.\@ the $F_4$ module could take inputs from an $F_3$ module and an $F_2$ module. Since these modules act almost instantaneously this makes the overall calculation also almost instantaneous.
 
-We can see the contrast between hardware and software in the determinant calculation described earlier. A software implementation, like the one listed in \ref{recursion_time} takes time but uses very little space, whereas the one listed in \ref{recursion_space} takes almost no time but a lot of space (and the code I present is limited to $4\times4$)---despite both being basically the same naive recursive algorithm. Here we see the differences between hardware and software---hardware is inherently parallel, whereas software is inherently sequential.
+We can see the contrast between hardware and software in the determinant calculation described earlier. A software implementation, like the one listed in \ref{recursion_time} takes time but uses very little space, whereas the one listed in \ref{recursion_space} takes almost no time but a lot of space (and the code I present is limited to $4\times4$)---despite both being basically the same naive, recursive algorithm. Here we see the differences between hardware and software---hardware is inherently parallel, whereas software is inherently sequential.
+\notedme{I think you need to qualify this more in terms of `typical' use or explicitly talk about procedural programming, etc. For example---indeed your example---hardware can create a CPU that can run software, so ends up being sequential (in your described sense). Equally, plenty of CPUs these days provide SIMD and many forms of underlying parallism (e.g., within CPU pipelines).}
 
-The other advantage hardware has over software is that it can be made very specific to an application, meaning that the overhead associated with having a CPU can be removed for the specific hardware concerned. For example, a hardware Fibonacci module does not require complex instruction decoding circuitry.
+The other advantage hardware has over software is that it can be made very specific to an application, meaning that the overhead associated with having a CPU can be removed for the specific hardware concerned. For example, a hardware Fibonacci module does not require complex instruction decoding circuitry \change{because it only performs one operation}.
 
 \section{Progress}
 
 \subsection{Python Kalman Filter / Test Harness Development}
 
-The first phase of the project was getting a simple Kalman filter working. This was based on a simple one-dimensional cart moving backwards and forwards, with the measured quantity being position. In figure \ref{1d_position_fig} we can see the system handles both a fairly predictable motion as well as an unpredictable motion quite well. This is to be expected since we are measuring position, thus we expect the estimate of position to be fairly accurate (for obvious reasons). The estimate of velocity slowly converges to the actual velocity, however it has to re-converge after the bump. This is also expected since the bump was modelled as an impulse, which isn't a 100\% realistic scenario.
+The first phase of the project was getting a simple Kalman filter working. This was based on a simple one-dimensional cart moving backwards and forwards, with the measured quantity being position. In figure \ref{1d_position_fig} we can see the system handles both a fairly predictable motion as well as an unpredictable motion quite well. 
+\notedme{Probably best to include a description of the experiment in the body text too, rather than relying on the caption.}
+This is to be expected since we are measuring position, thus we expect the estimate of position to be fairly accurate (for obvious reasons). The estimate of velocity slowly converges to the actual velocity, however it has to re-converge after the bump. This is also expected since the bump was modelled as an impulse, which isn't a 100\% realistic scenario.
 
 \begin{figure}[thp]
 	\centering
 	
-	\includegraphics[width=\textwidth]{1d-position.pdf}
+	\fbox{\includegraphics[height=0.8\textheight]{1d-position.pdf}}
 	
-	\caption{A cart moving backwards and forwards, with a slight tendency to move in the positive direction. The cart is ``bumped'' at $t=5$, where we see the error of the velocity increase, until it settles down into a new equilibrium.}
+	\caption{A cart moving backwards and forwards, with a slight tendency to move in the positive direction. The cart is ``bumped'' at $t=5$, where we see the error of the velocity increase, until it settles down into a new equilibrium.\notedme{needs more work to fit on page: remove the fbox I added, but I'm using the fbox around your PDF to demonstrate that your PDFs include a white border that you want to remove. You also need to ensure there's enough space on the page for the figure and the caption. The \LaTeX{} log file will indicate if the content fits.}}
 	\label{1d_position_fig}
 \end{figure}
 
@@ -298,7 +305,7 @@ The next system was the same as before except the velocity was measured, and the
 \begin{figure}[thp]
 	\centering
 	
-	\includegraphics[width=\textwidth]{1d-velocity.pdf}
+	\includegraphics[height=0.8\textheight]{1d-velocity.pdf}
 	
 	\caption{Here we see the estimate of the state continue to be fairly accurate, even when faced with an unconstrained motion in the positive direction.}
 	\label{1d_velocity_fig}
@@ -324,7 +331,7 @@ From this we can also demonstrate how sensor and model noise affect the accuracy
 
 If we run multiple iterations of the three dimensional scenario, altering the amount of noise added to the measurements and system each time, we can calculate the RMS of the error values and plot that against that noise figure, as shown in figure \ref{3d_rms_fig}.
 
-\begin{figure}[thp]
+\begin{figure}[tp]
 	\centering
 	
 	\includegraphics[width=\textwidth]{3d-rms.pdf}
@@ -334,12 +341,12 @@ If we run multiple iterations of the three dimensional scenario, altering the am
 	\label{3d_rms_fig}
 \end{figure}
 
-Here we see linear growth (with some noise)---as we make the simulated sensors more noisy the quality of the output goes down. We can see the effect of this noise in figure \ref{3d_noise_fig}---where the noise is five times greater than in figure \ref{3d_orient_fig}.
+Here we see linear growth (with some noise)---as we make the simulated sensors more noisy the quality of the output goes down. We can see the effect of this noise in figure~\ref{3d_noise_fig}---where the noise is five times greater than in figure~\ref{3d_orient_fig}.
 
 \begin{figure}[thp]
 	\centering
 	
-	\includegraphics[width=\textwidth]{3d-orientation-noisy.pdf}
+	\includegraphics[height=0.8\textheight]{3d-orientation-noisy.pdf}
 	
 	\caption{The filter performing much worse---but the error is still bounded---and the shape of the periodic curves does approximately match reality.}
 	\label{3d_noise_fig}
@@ -347,15 +354,20 @@ Here we see linear growth (with some noise)---as we make the simulated sensors m
 
 \subsection{Verilog Implementation}
 
-As we have seen in \ref{recursion_space}, the amount of Verilog code required to perform a moderately complicated mathematical operation is quite vast.
+As can be seen in \ref{recursion_space}, the amount of Verilog code required to perform a moderately complicated mathematical operation is quite vast.
 
-The $4\times4$ code I show could be written by hand fairly easily, however this would not be possible for the $12\times12$ matrix required for three dimensions each of orientation, acceleration, angular velocity, and the magnetic field vector---even a $9\times9$ version took up 40 slides in beamer.
+The $4\times4$ code I show could be written by hand fairly easily, however this would not be possible for the $12\times12$ matrix required for three dimensions each of orientation, acceleration, angular velocity, and the magnetic field vector---even a $9\times9$ version took up 40 slides in Beamer.
 
 The solution is to automatically generate the Verilog code in software---this is the approach I used for the code in \ref{recursion_space}. This is not a trivial task but it is significantly easier to write a few hundred lines of Python than 20 KiB of Verilog.
 
 So far, I have a reliable tool to generate the Verilog for calculating the determinant of arbitrarily sized matrices (with the maximum size specified when the Verilog is generated). I have also created a testbench module and associated Python script to confirm that it is, in fact, reliable.
+\notedme{Add text describing how you're checking the result is reliable. You proceed to talk about 8-bit and 16-bit number representations without having let the reader know why this sort of size selection of numbers is necessary and/or useful.}
 
+<<<<<<< HEAD
 The testbench model gives the following output when the matrix values are between -10 and +10, and all numbers are 8 bits long, for $2\times2$ matrices. It outputs information when the result from Icarus differs from what Python's \lstinline|numpy| library expects. Here we can see the module failing occasionally due to integer overflow\footnote{Note that in each case, if we flip all the bits in the numbers labelled ``Parsed matrix determinant'' and add one, then the number will be (when interpreted as a two's compliment number) the same as the number labelled ``Icarus determinant''} somewhere in the operation, due to the size of the numbers:
+=======
+The testbench model gives the following output when the matrix values are between -10 and +10, and all numbers are 8 bits long, for $2\times2$ matrices. It outputs information when the result from Icarus differs from what Python's \lstinline|numpy| library expects. Here we can see the module failing occasionally due to integer overflow, note that in each case, if we flip all the bits in the numbers labelled ``Parsed matrix determinant'' and add one, then the number will be (when interpreted as a two's compliment number) the same as the number labelled ``Icarus determinant'': \notedme{Note closing quotes are '' and not " as you are sometimes using.}
+>>>>>>> aeb190183e42570fa9a986f86f798df6dd808de4
 
 \lstinputlisting[numbers=none, backgroundcolor=\color{white}]{testbench-output-28.txt}
 
@@ -368,7 +380,7 @@ We can see this in the figures \ref{full_heat} and \ref{full_sfc}. What we can s
 	
 	\includegraphics[width=\textwidth]{heatmap_full.pdf}
 	
-	\caption{A heat-map of the base 10 $\log$ of the average error of the determinant (when compared to the result from \lstinline|numpy|), after 10 runs for a $12 \times 12$ matrix}.
+	\caption{A heat-map of the base 10 $\log$ of the average error of the determinant (when compared to the result from \lstinline|numpy|), after 10 runs for a $12 \times 12$ matrix. \notedme{Nice! Can you flip the label colour to black on the lighter couloured squares?}}
 	\label{full_heat}
 \end{figure}
 
@@ -381,11 +393,11 @@ We can see this in the figures \ref{full_heat} and \ref{full_sfc}. What we can s
 	\label{full_sfc}
 \end{figure}
 
-My first implementation of the matrix operations was using the naive algorithms, as described in section \ref{naive}. This implementation worked, however when it came to simulating the Verilog, both the determinant, and even more so the inverse took a very long time for the $12 \times 12$ case. I had estimated that simulating the $12 \times 12$ inverse would take about a whole day, and also be far too time consuming to implement in practice. As a result of this, I turned to the LU decomposition, as discussed in section \ref{lu}. Due to time constraints, I was only to implement the ``half-naive'' inverse, however this alone made a huge difference: The simulation time dropped to 10 minutes---and the predicted performance wasn't too bad---about 2.5 million clock cycles. On a 100 MHz FPGA this could do 40 operations per second. Since there is only one inverse per Kalman Filter cycle, and the inverse operation takes the longest by far of all of the operations, I would expect to be able to run about 40 Kalman filter cycles per second, which would be sufficient for real time operation. This is not ideal however, so a future work goal would to implement the full use of the LU decomposition for the matrix inverse. This would reduce the runtime from $\mathcal{O}(n^5)$ to $\mathcal{O}(n^3)$, i.e. for a $12 \times 12$ matrix it would take 144 times less. That would mean only around 20,000 clock cycles, or over 5,500 Kalman Filter cycles per second. This is a huge improvement.
+My first implementation of the matrix operations was using the naive algorithms, as described in section \ref{naive}. This implementation worked, however when it came to simulating the Verilog, both the determinant, and even more so the inverse took a very long time for the $12 \times 12$ case. I had estimated that simulating the $12 \times 12$ inverse would take about a whole day, and also be far too time consuming to implement in practice. As a result of this, I turned to the LU decomposition, as discussed in section \ref{lu}. Due to time constraints, I was only to implement the ``half-naive'' inverse, however this alone made a huge difference: The simulation time dropped to 10 minutes---and the predicted performance wasn't too bad---about 2.5 million clock cycles \change{to complete an operation}. On a 100 MHz FPGA this could do 40 operations per second. Since there is only one inverse per Kalman Filter cycle, and the inverse operation takes the longest by far of all of the operations, I would expect to be able to run about 40 Kalman filter cycles per second, which would be sufficient for real time operation. This is not ideal however, so a future work goal would to implement the full use of the LU decomposition for the matrix inverse. This would reduce the runtime from $\mathcal{O}(n^5)$ to $\mathcal{O}(n^3)$, i.e. for a $12 \times 12$ matrix it would take 144 times less \notedme{a bit confusingly expressed here, although the next sentence is clear}. That would mean only around 20,000 clock cycles, or over 5,500 Kalman Filter cycles per second. This is a huge improvement.
 
 \subsubsection{Synthesis and Implementation}
 
-Due to time constraints I was not in a position to put a final bitstream on an FPGA, however I was able to synthesize it, and place and route it, based on the target device being a Xilinx Artix-7 XC7A100TCSG324, shown in figure \ref{tim_xilinx}.
+Due to time constraints I was not in a position to put a final bitstream on an FPGA, however I was able to synthesize it, and place and route it, based on the target device being a Xilinx Artix-7 XC7A100TCSG324, shown in figure~\ref{tim_xilinx}.
 
 \begin{figure}[thp]
 	\centering
@@ -406,6 +418,8 @@ Certain specific tasks that could be done in future include
 	\item Have the matrix operations actually make a Kalman filter, and interface it with sensors.
 	\item Change the matrix inverse module to directly use the matrix LU module.
 \end{itemize}
+
+\notedme{Can you put in a conclusion? It might be nice to synthesise (in the knowledge sense, not the HDL sense) where you got to in the project, e.g., where the unexpected difficulties arose. I feel that you made excellent progress, but (as is usually the case) had to diverge from your original plan due to various unforeseen complexities and issues. You've then turned the project around to produce some really good thorough results, such as the heatmap+plot of precision and accuracy tradeoffs, and quantifying the value of the LRU replacement algorithms.}
 
 \printbibliography
 
