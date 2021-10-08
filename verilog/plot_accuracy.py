@@ -31,7 +31,7 @@ for i in range(ny):
 
                 validator.my_subprocess_run(["./gen_mat_operation.py", str(matrix_size), str(whole_width), str(dec_width)])
 
-                (count, ok_count, avg_err) = validator.process_op("src", matrix_size, whole_width, dec_width, 10, "det")
+                (count, ok_count, avg_err) = validator.process_op("src", matrix_size, whole_width, dec_width, 10, "inv")
 
                 avg_err_log = np.log(avg_err)
 

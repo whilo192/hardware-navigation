@@ -13,6 +13,7 @@
 /py-kalman/fig.pdf
 /verilog/src
 /verilog/__pycache__
+/verilog/*.pdf
 /aims/aims.pdf
 /interim-report/interim-report.pdf
 /final-report/final-report.pdf
