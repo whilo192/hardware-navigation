@@ -53,7 +53,6 @@ module test #(parameter WIDTH={width}, parameter BIN_POS={bin_pos}, parameter MA
             begin
                 $display("mat: %h", matrix);
                 $display("inv: %h", inv);
-                $display("det: %h", m1.wdet);
             end
 
             count++;

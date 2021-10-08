@@ -275,10 +275,8 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
             else:
                 mat = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
                 inv = generate_numpy_matrix_from_verilog_output(lines[i + 1], n, width, bin_pos)
-                det = generate_numpy_scalar_from_verilog_output(lines[i + 2], width, bin_pos)
 
                 np_inv = np.linalg.inv(mat)
-                np_det = np.linalg.det(mat)
 
                 err = np_scal_diff(inv, np_inv)
 
@@ -287,24 +285,21 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
                 else:
                     print(lines[i])
                     print(lines[i+1])
-                    print(lines[i+2])
 
                     print()
 
                     print(mat)
                     print(inv)
-                    print(det)
 
                     print()
 
                     print(np_inv)
-                    print(np_det)
 
                     print()
 
                     print(err)
 
-                i += 3
+                i += 2
 
         total_err += err
 
