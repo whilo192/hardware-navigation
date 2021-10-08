@@ -77,7 +77,6 @@ def np_scal_diff(m1, m2):
 
 def process_op(wk_dir, n, width, bin_pos, count, op):
     n2 = n**2
-    nminus1 = n-1
 
     with open(rf"test_{op}.v", 'r') as test_file:
         with open(wk_dir + rf"/test_{op}.v", 'w') as copy_file:
@@ -87,7 +86,7 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
 
     os.chdir(wk_dir)
 
-    my_subprocess_run(["iverilog", "-o", rf"test_{op}", rf"test_{op}.v"] +  [rf"matdet{n}.v", rf"matdet{nminus1}.v"] + [rf"matlu{n}.v", rf"matlu{nminus1}.v"] + ["mul.v", "div.v"] + [rf"scalvec{n2}.v", rf"mattrans{n}.v", rf"vecvec{n}.v", rf"matmat{n}.v", rf"matinv{n}.v"])
+    my_subprocess_run(["iverilog", "-o", rf"test_{op}", rf"test_{op}.v"] +  [rf"matlu{n}.v",  rf"matdet{n}.v", rf"matinv{n}.v"] + ["mul.v", "div.v"] + [rf"scalvec{n2}.v", rf"mattrans{n}.v", rf"vecvec{n}.v", rf"matmat{n}.v"])
     result = my_subprocess_run(["vvp", rf"test_{op}"], False)
 
     os.chdir("..")
@@ -101,36 +100,6 @@ def process_op(wk_dir, n, width, bin_pos, count, op):
     total_err = 0
 
     while i < len(lines):
-        if op == "dot":
-            lhs = generate_numpy_vector_from_verilog_output(lines[i], n, width, bin_pos)
-            rhs = generate_numpy_vector_from_verilog_output(lines[i + 1], n, width, bin_pos)
-            dot = generate_numpy_scalar_from_verilog_output(lines[i + 2], width, bin_pos)
-
-            np_dot = np.matmul(lhs.T, rhs)[0,0]
-
-            err = np.abs(dot - np_dot)
-            if err < 0.01:
-                ok_count += 1
-            else:
-                print(lines[i])
-                print(lines[i+1])
-                print(lines[i+2])
-
-                print()
-
-                print(lhs)
-                print(rhs)
-                print(dot)
-
-                print()
-
-                print(np_dot)
-
-                print()
-
-                print(err)
-
-            i += 3
         if op == "mul":
             lhs = generate_numpy_matrix_from_verilog_output(lines[i], n, width, bin_pos)
             rhs = generate_numpy_matrix_from_verilog_output(lines[i + 1], n, width, bin_pos)
@@ -355,4 +324,4 @@ def main(wk_dir, n, width, bin_pos, count, ops):
 
 if __name__ == "__main__":
     #n, width, bin_pos, count
-    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["dot", "mul", "div", "det", "trans", "inv"])
+    main("src", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), ["mul", "div", "det", "trans", "inv"])
