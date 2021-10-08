@@ -389,24 +389,64 @@ The testbench model gives the following output when the matrix values are betwee
 
 With 16-bit numbers, all 1000 runs for the $2\times2$ matrices succeed. For a $6\times6$ matrix, 24-bit numbers are needed. If the range of matrix values is increased to -100 to 100 then 48 bits are required for a $6\times6$ matrix, and 16 bits are required for a simple $2\times2$ matrix. For a $12\times12$ matrix with numbers ranging from 0 to 10, similar to what I would expect to see in a Kalman filter, 128-bit numbers are required, 64 whole bits, and 64 decimal bits.
 
-We can see this in the figures \ref{full_heat} and \ref{full_sfc}. What we can see is that the integer width needs to be sufficient to prevent overflow, and no more, i.e.\@ there is no benefit to using larger integer components. This is in contrast to the decimal component, where we see that increasing that reduces error linearly, until about 56 bits, where it starts to flatten out.
+We can see this in the figures \ref{full_heat_det} and \ref{full_sfc_det}. What we can see is that the integer width needs to be sufficient to prevent overflow, and no more, i.e.\@ there is no benefit to using larger integer components. This is in contrast to the decimal component, where we see that increasing that reduces error linearly, until about 56 bits, where it starts to flatten out. A similar pattern is visible with the matrix inverse operation (figures  \ref{full_heat_inv} and \ref{full_sfc_inv}), except in that case the integer width makes even less of an impact---any integer component greater than 8 bit is sufficient.
+
+One final operation worth discussing is matrix multiplication. In figures \ref{full_heat_mul} and \ref{full_sfc_mul}, we can see that the matrix multiplication operation is much more consistent and predictable that the inverse and determinant operations. This arises primarily because calculated values are not dependant on previously calculated values, e.g.\@ for $\mathbf{AB}=\mathbb{C}$, $c_{ij}$ does not depend on any other previously calculated values in $\mathbf{C}$, meaning that there is no global error, only local error. Compare that to the LU decomposition, which, for example, normalises values based on the calculated diagonal. Thus errors can compound. Regardless of the relative consistency, we can still see that integer width only matters up until a point, whereas the accuracy falls of more slowly as the decimal width is reduced.
+
+I will also note here that the transposition operation had no error, since all it does is rearrange a buffer.
 
 \begin{figure}[thp]
 	\centering
 	
-	\includegraphics[width=\textwidth]{heatmap_full.pdf}
+	\includegraphics[width=\textwidth]{heatmap_full_det.pdf}
 	
 	\caption{A heat-map of the base 10 $\log$ of the average error of the determinant (when compared to the result from \lstinline|numpy|), after 10 runs for a $12 \times 12$ matrix. Darker colours (smaller numbers) are better.}
-	\label{full_heat}
+	\label{full_heat_det}
 \end{figure}
 
 \begin{figure}[thp]
 	\centering
 	
-	\includegraphics[width=\textwidth]{sfc_plot_full.pdf}
+	\includegraphics[width=\textwidth]{sfc_plot_full_det.pdf}
 	
 	\caption{The same plot as above, but as a 3D surface plot as opposed to a heat-map. The steep gradient at around a 40-bit wide integer component is very visible here. Lower is better.}
-	\label{full_sfc}
+	\label{full_sfc_det}
+\end{figure}
+
+\begin{figure}[thp]
+	\centering
+	
+	\includegraphics[width=\textwidth]{heatmap_full_inv.pdf}
+	
+	\caption{Another heat-map, this time for the inverse. This has a much steeper drop-off for sufficiently wide integer components. Darker colours (smaller numbers) are better.}
+	\label{full_heat_inv}
+\end{figure}
+
+\begin{figure}[thp]
+	\centering
+	
+	\includegraphics[width=\textwidth]{sfc_plot_full_inv.pdf}
+	
+	\caption{Another surface plot, this time for the inverse. Lower is better.}
+	\label{full_sfc_inv}
+\end{figure}
+
+\begin{figure}[thp]
+	\centering
+	
+	\includegraphics[width=\textwidth]{heatmap_full_mul.pdf}
+	
+	\caption{Another heat-map, this time for matrix multiplication. The much greater consistency is very visible here. Darker colours (smaller numbers) are better.}
+	\label{full_heat_mul}
+\end{figure}
+
+\begin{figure}[thp]
+	\centering
+	
+	\includegraphics[width=\textwidth]{sfc_plot_full_mul.pdf}
+	
+	\caption{Another surface plot, this time for matrix multiplication. The consistency of the matrix multiplication operation is very visible here---it almost looks like an empty swimming pool. Lower is better.}
+	\label{full_sfc_mul}
 \end{figure}
 
 My first implementation of the matrix operations was using the naive algorithms, as described in section \ref{naive}. This implementation worked, however when it came to simulating the Verilog, both the determinant, and even more so the inverse took a very long time for the $12 \times 12$ case. I had estimated that simulating the $12 \times 12$ inverse would take about a whole day, and also be far too time consuming to implement in practice. As a result of this, I turned to the LU decomposition, as discussed in section \ref{lu}. Due to time constraints, I was only to implement the ``half-naive'' inverse, however this alone made a huge difference: The simulation time dropped to 10 minutes---and the predicted performance wasn't too bad---about 2.5 million clock cycles to complete an operation. On a 100 MHz FPGA this could do 40 operations per second. Since there is only one inverse per Kalman Filter cycle, and the inverse operation takes the longest by far of all of the operations, I would expect to be able to run about 40 Kalman filter cycles per second, which would be sufficient for real time operation. This is not ideal however, so a future work goal would to implement the full use of the LU decomposition for the matrix inverse. This would reduce the runtime from $\mathcal{O}(n^5)$ to $\mathcal{O}(n^3)$, i.e. for a $12 \times 12$ matrix this would result in speeding up the operations by a factor of 144. That would mean only around 20,000 clock cycles, or over 5,500 Kalman Filter cycles per second. This is a huge improvement.
