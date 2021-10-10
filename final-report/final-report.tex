@@ -183,7 +183,7 @@ For this project, the required matrix operations are:
 	\item Inverse
 \end{itemize}
 
-Of these, transposition is by far the easiest, since it is nothing more than shuffling some data around. The next easiest is addition and subtraction, since it just involves adding or subtracting some numbers. The next easiest is scaling, which can be implemented by something as simple as a loop through all of the elements of the vector or matrix, and multiplying it by the scalar. Multiplication by a vector or matrix is also comparatively simple, as it is just a series of dot products.
+Of these, transposition is by far the easiest, since it is nothing more than shuffling some data around. The next easiest is addition and subtraction, since it just involves adding or subtracting some numbers. This requires some care when it comes to overflow and optimisation, but this is not too difficult. The next easiest is scaling, which can be implemented by something as simple as a loop through all of the elements of the vector or matrix, and multiplying it by the scalar. Multiplication by a vector or matrix is also comparatively simple, as it is just a series of dot products.
 
 The two more difficult operations are the determinant and inverse. The naive matrix determinant algorithm \cite{strang2006linear} is
 
@@ -210,9 +210,7 @@ These are sufficient for small matrices, however for this project I am targeting
 \subsection{Better Matrix Algorithms}
 \label{lu}
 
-\todo[inline]{I think this is a good middle ground since I do want to introduce the results of having the L and U matrices, without having to go through the LU decomposition until we know what L and U mean, but I still want to correctly introduce L and U}
-
-Thankfully there are better ways\footnote{This is very common with numerical methods, often the more intuitive methods are mathematically ``cleaner'', however they tend to be slower, or more numerically unstable, than the less intuitive but more optimised algorithms.}. Imagine we had two matrices: A lower triangular matrix $\mathbf{L}$, and an upper triangular matrix $\mathbf{U}$, both square matrices with dimension $n \times n$. Let's also imagine that the values on the diagonal of $\mathbf{L}$ are all 1. We can explore how these matrices have much better properties for finding the determinant, and inverse.
+Thankfully there are better ways\footnote{This is very common with numerical methods, often the more intuitive methods are mathematically ``cleaner'', however they tend to be slower, or more numerically unstable, than the less intuitive but more optimised algorithms. The QR factorisation---which is briefly discussed later---decomposes a matrix into an orthogonal matrix $\mathbf{Q}$ and an upper triangular matrix $\mathbf{R}$. The usual process for orthogonalization is the Gram–Schmidt process, which projects vectors onto an orthonormal basis. Unfortunately the Gram–Schmidt process is numerically unstable so Householder reflections are often used instead, which are conceptually less intuitive.}. Imagine we had two matrices: A lower triangular matrix $\mathbf{L}$, and an upper triangular matrix $\mathbf{U}$, both square matrices with dimension $n \times n$. Let's also imagine that the values on the diagonal of $\mathbf{L}$ are all 1. We can explore how these matrices have much better properties for finding the determinant and inverse.
 
 \subsubsection{Determinant}
 Consider $\det(\mathbf{LU})$. We can simplify this by doing the following:
@@ -302,11 +300,33 @@ We can see the contrast between hardware and software in the determinant calcula
 
 The other advantage hardware has over software is that it can be made very specific to an application, meaning that the overhead associated with having a CPU can be removed for the specific hardware concerned. For example, a hardware Fibonacci module does not require complex instruction decoding circuitry because it only performs one operation.
 
+One final thing to note is that---as with most things---the optimal methods are usually somewhere in the middle. For example, my matrix multiplication module performs a sequence of dot products sequentially (like a CPU), however each multiplication operation in the dot product module is performed in parallel. Likewise, as I alluded to before, many pieces of software are being optimised for our modern multicore systems, and modern CPUs support SIMD instructions, which are similar to my dot product module---the same instruction / operation (multiplication) is performed  on multiple pieces of data (each pair of entries in the vectors).
+
 \section{Progress}
 
 \subsection{Python Kalman Filter / Test Harness Development}
-\todo[inline]{Provide better descriptions of the systems here, as mentioned by David and by the feedback from the interim report. Also fix image heights}
-The first phase of the project was getting a simple Kalman filter working. This was based on a simple one-dimensional cart moving backwards and forwards, with the measured quantity being position. In figure \ref{1d_position_fig} we can see the system handles both a fairly predictable motion as well as an unpredictable motion quite well. 
+The first phase of the project was getting a simple Kalman filter working. I will start by restating two important equations for the Kalman filter. Firstly, we have how state state is updated over time:
+$$\mathbf{x}_k = \mathbf{F}_k \mathbf{x}_{k-1} + \mathbf{B}_k \mathbf{u}_k$$
+where $\mathbf{x}_k$ is the state at some time step $k$, $\mathbf{F}_k$ is the state transition model which shows how the state evolves on its own, and $\mathbf{B}_k$ is the control input model which shows how the system response when perturbed by an input, $\mathbf{u}_k$.
+
+The second equation shows how the measurements are predicted by the state:
+$$\mathbf{z}_k = \mathbf{H}_k \mathbf{x}_k$$
+where $\mathbf{z}_k$ are the measurements, and $\mathbf{H}_k$ is the matrix which maps state to measurements.
+
+\subsubsection{Example Situation One - Position}
+The first situation was the case of a simple one-dimensional cart moving backwards and forwards, with the measured quantity being position. In this case, the state is
+$$\mathbf{x} = \begin{bmatrix} x \\ \dot{x} \end{bmatrix}$$
+where $x$ is the position. The state transition model is
+$$\mathbf{F} = \begin{bmatrix} 1 & \Delta t \\ 0 & 1 \end{bmatrix}$$
+where $\Delta t$ is the time step. This represents position increasing by velocity multiplied by the time step. The control vector is
+$$\mathbf{u}_k = \begin{bmatrix} a \\a\end{bmatrix}$$
+i.e.\@ the system is being perturbed by some acceleration, $a$. Thus the control input model is 
+$$\mathbf{B} = \begin{bmatrix} \frac{1}{2} {\Delta t}^2 \\ \Delta t \end{bmatrix}$$
+which just represents discrete integration of acceleration to get velocity and position. Finally, the measurement matrix is
+$$\mathbf{H} = \begin{bmatrix} 1 & 0 \end{bmatrix}$$
+i.e.\@ we are measuring position, so $\mathbf{z}_k=x$.
+
+In figure \ref{1d_position_fig} we can see the system handles both a fairly predictable motion as well as an unpredictable motion quite well. 
 
 This is to be expected since we are measuring position, thus we expect the estimate of position to be fairly accurate (for obvious reasons). The estimate of velocity slowly converges to the actual velocity, however it has to re-converge after the bump. This is also expected since the bump was modelled as an impulse, which isn't a 100\% realistic scenario.
 
@@ -319,7 +339,13 @@ This is to be expected since we are measuring position, thus we expect the estim
 	\label{1d_position_fig}
 \end{figure}
 
-The next system was the same as before except the velocity was measured, and the position determined by integrating---i.e.\@ by adding the velocity multiplied by the time step to the previous position. In this scenario, the velocity is cyclical, with a slight increase over time. As we can see in figure \ref{1d_velocity_fig}, the model continues to perform well, with minimal error which appears to be bounded.
+\subsubsection{Example Situation Two - Velocity}
+
+The next system was the same as before except the velocity was measured, and the position determined by integrating---i.e.\@ by adding the velocity multiplied by the time step to the previous position. All variables are the same as with the first situation, except that
+$$\mathbf{H} = \begin{bmatrix} 0 & 1 \end{bmatrix}$$
+and thus we are measuring velocity, so $\mathbf{z}_k=\dot{x}$.
+
+In this scenario, the velocity is cyclical, with a slight increase over time. As we can see in figure \ref{1d_velocity_fig}, the model continues to perform well, with minimal error which appears to be bounded.
 
 \begin{figure}[thp]
 	\centering
@@ -330,7 +356,11 @@ The next system was the same as before except the velocity was measured, and the
 	\label{1d_velocity_fig}
 \end{figure}
 
-The final scenario is that of a three-dimensional body rocking backwards and forwards on all three axes. This also shows decent performance, which we can see in figure \ref{3d_orient_fig}. The error is low, and more importantly stays low (i.e.\@ doesn't run off to infinity).
+\subsubsection{Example Situation Three - 3D Orientation}
+
+The final scenario is that of a three-dimensional body rotating backwards and forwards on all three axes. This time the state\footnote{I won't present the matrices and vectors since their length is unwieldy (especially given that they tend to be very sparse) and don't provide any useful information.} contains orientation, angular velocity, and the three angles (one for each axis x, y, and z) between the measured orientation and some known orientation (this stands in for something like the magnetic field vector in real life). The state transition model is simply integrating angular velocity and adding it to orientation to get an updated orientation. The control input model is similar, as it just sets the angular velocity. Finally, the measurements are of angular velocity and the fake ``magnetic field''.
+
+This also shows decent performance, which we can see in figure \ref{3d_orient_fig}. The error is low, and more importantly stays low (i.e.\@ doesn't run off to infinity).
 
 \begin{figure}[thp]
 	\centering
@@ -391,7 +421,7 @@ With 16-bit numbers, all 1000 runs for the $2\times2$ matrices succeed. For a $6
 
 We can see this in the figures \ref{full_heat_det} and \ref{full_sfc_det}. What we can see is that the integer width needs to be sufficient to prevent overflow, and no more, i.e.\@ there is no benefit to using larger integer components. This is in contrast to the decimal component, where we see that increasing that reduces error linearly, until about 56 bits, where it starts to flatten out. A similar pattern is visible with the matrix inverse operation (figures  \ref{full_heat_inv} and \ref{full_sfc_inv}), except in that case the integer width makes even less of an impact---any integer component greater than 8 bit is sufficient.
 
-One final operation worth discussing is matrix multiplication. In figures \ref{full_heat_mul} and \ref{full_sfc_mul}, we can see that the matrix multiplication operation is much more consistent and predictable that the inverse and determinant operations. This arises primarily because calculated values are not dependant on previously calculated values, e.g.\@ for $\mathbf{AB}=\mathbb{C}$, $c_{ij}$ does not depend on any other previously calculated values in $\mathbf{C}$, meaning that there is no global error, only local error. Compare that to the LU decomposition, which, for example, normalises values based on the calculated diagonal. Thus errors can compound. Regardless of the relative consistency, we can still see that integer width only matters up until a point, whereas the accuracy falls of more slowly as the decimal width is reduced.
+One final operation worth discussing is matrix multiplication. In figures \ref{full_heat_mul} and \ref{full_sfc_mul}, we can see that the matrix multiplication operation is much more consistent and predictable that the inverse and determinant operations. This arises primarily because calculated values are not dependant on previously calculated values, e.g.\@ for $\mathbf{AB}=\mathbf{C}$, $c_{ij}$ does not depend on any other previously calculated values in $\mathbf{C}$, meaning that there is no global error, only local error. Compare that to the LU decomposition, which, for example, normalises values based on the calculated diagonal. Thus errors can compound. Regardless of the relative consistency, we can still see that integer width only matters up until a point, whereas the accuracy falls of more slowly as the decimal width is reduced.
 
 I will also note here that the transposition operation had no error, since all it does is rearrange a buffer.
 
@@ -449,7 +479,7 @@ I will also note here that the transposition operation had no error, since all i
 	\label{full_sfc_mul}
 \end{figure}
 
-My first implementation of the matrix operations was using the naive algorithms, as described in section \ref{naive}. This implementation worked, however when it came to simulating the Verilog, both the determinant, and even more so the inverse took a very long time for the $12 \times 12$ case. I had estimated that simulating the $12 \times 12$ inverse would take about a whole day, and also be far too time consuming to implement in practice. As a result of this, I turned to the LU decomposition, as discussed in section \ref{lu}. Due to time constraints, I was only to implement the ``half-naive'' inverse, however this alone made a huge difference: The simulation time dropped to 10 minutes---and the predicted performance wasn't too bad---about 2.5 million clock cycles to complete an operation. On a 100 MHz FPGA this could do 40 operations per second. Since there is only one inverse per Kalman Filter cycle, and the inverse operation takes the longest by far of all of the operations, I would expect to be able to run about 40 Kalman filter cycles per second, which would be sufficient for real time operation. This is not ideal however, so a future work goal would to implement the full use of the LU decomposition for the matrix inverse. This would reduce the runtime from $\mathcal{O}(n^5)$ to $\mathcal{O}(n^3)$, i.e. for a $12 \times 12$ matrix this would result in speeding up the operations by a factor of 144. That would mean only around 20,000 clock cycles, or over 5,500 Kalman Filter cycles per second. This is a huge improvement.
+My first implementation of the matrix operations was using the naive algorithms, as described in section \ref{naive}. This implementation worked, however when it came to simulating the Verilog, both the determinant, and even more so the inverse took a very long time for the $12 \times 12$ case. I had estimated that simulating the $12 \times 12$ inverse would take about a whole day, and also be far too time consuming to implement in practice. As a result of this, I turned to the LU decomposition, as discussed in section \ref{lu}. Initially, I only converted the determinant operation to use the LU decomposition--- i.e.\@ the inverse operation was the ``half-naive'' inverse. Despite the inverse only being half optimised, it still made a huge difference: The simulation time dropped to 10 minutes---and the predicted performance wasn't too bad---about 2.5 million clock cycles to complete an operation. On a 100 MHz FPGA this could do 40 operations per second. Since there is only one inverse per Kalman Filter cycle, and the inverse operation takes the longest by far of all of the operations, I would expect to be able to run about 40 Kalman filter cycles per second, which would be sufficient for real time operation. This is still not ideal however, so I tried again with the fully optimised inverse. Again, there was a huge speed up in simulation time---from 10 minutes to one second. The actual performance improved hugely as well, down to only 58,674 clock cycles. At 100 MHz this represents 1700 inverses per second. Since the inverse still represents the longest operation (58,674 cycles versus 145 clock cycles for $12\times12$ multiplication), then this would represent 1700 Kalman filter cycles per second, i.e.\@ less than one milliseconds per filter cycle. Assuming, hypothetically, that a chip made from this design could run at the speed of a CPU, e.g.\@ 3.6 GHz, this would represent 61,200 filter cycles per second, or a filter cycle every 16 microseconds.
 
 \subsubsection{Synthesis and Implementation}
 
@@ -464,25 +494,39 @@ Due to time constraints I was not in a position to put a final bitstream on an F
 	\label{tim_xilinx}
 \end{figure}
 
-This FPGA has 63,400 LUTs, and 240 DSPs (multiplier units), which should be sufficient for the purposes of this project. A development board with this FPGA on it costs around \$129.00 USD, which is entirely reasonable. Of course this would not be acceptable for a chip to be included in a phone, however if I was to actually manufacture this chip it would be fabricated to an actual dedicated chip (an application specific integrated circuit), which would be much cheaper if manufactured in volume.
+This FPGA has 63,400 LUTs, and 240 DSPs (multiplier units), which should be sufficient for the purposes of this project. A development board with this FPGA on it costs around \$129.00 USD, which is entirely reasonable. Of course this would not be acceptable for a chip to be included in a phone, however this is because FPGAs are much more expensive than non-configurable hardware.
 
-Due to the complexity of the semi-naive inverse module, this FPGA was only sufficient for the $4 \times 4$ matrix modules at most. Despite this \todo[inline]{Some synthesis runs still need to finish, will finish this section after that}
+Because the DSPs on the FPGA I am using only support multiplication of 25-bit and 18-bit numbers, it was not sufficient for even the $4\times4$ modules (with semi--naive inverse) with 128-bit wide numbers, as it required 74,989 LUTs and 1008 DSPs. As a workaround, I artificially limited the width of the numbers going into the multiplier units to only be 16 bits wide (while keeping the correct widths elsewhere). This reduced the requirements to 38,027 LUTs and 5 DSPs, which would fit on the Artix-7 FPGA I was targeting. By using the fully LU based inverse module, this was further reduced to 24,569 LUTs and 2 DSPs.
+
+In order to show how increasing the size of the matrices increases the resource usage, I synthesized only the inverse module, with 16-bit wide numbers. The results are in the table below:
+
+\begin{center}
+	\begin{tabular}{ c | c c }
+		Size & LUTs & DSPs \\ 
+		\hline
+		$4\times4$ & 3019 & 2 \\  
+		$8\times8$ & 10,330 & 2 \\
+		$12\times12$ & 22,426 & 2
+	\end{tabular}
+\end{center}
+
+This indicates that with some optimisation, it would be possible to fit this on such an FPGA. This would require ensuring that addition was constrained to run on the DSPs, and not via adders cobbled together from LUTs, since this is likely the culprit for the high LUT usage and low DSP usage. This would free up enough LUTs to expand to the full 128-bit wide numbers.
 
 \section{Future Work}
 
-Certain specific tasks that could be done in future include
+Certain specific tasks that could be done in future include:
 
 \begin{itemize}
-	\item Change the matrix inverse module to directly use the matrix LU module.
 	\item Further optimise the mathematics to reduce LUT count.
-	\item Piece together a Kalman filter from the matrix mathematics modules, and quantify the error for the whole filter. This could then be interfaced with sensors. To provide state estimation.
+	\item Optimise the multiplication operator to allow it to use DSPs efficiently for numbers of any width.
+	\item Piece together a Kalman filter from the matrix mathematics modules, and quantify the error for the whole filter. This could then be interfaced with sensors to provide state estimation.
 \end{itemize}
 
 \section{Conclusion}
 
-The project started out as an attempt to implement a Kalman filter in Verilog, pivoted to take more of a focus on the matrix operations that make up the Kalman filter. In particular, I ended up focusing on optimising the matrix mathematics (still with the Kalman filter in mind, since I performed the tests on a $12 \times 12$ matrix), in terms of the precision of the representation of the numbers, and in terms of how optimal the algorithms that I was using are.
+The project started out as an attempt to implement a Kalman filter in Verilog, but pivoted to take more of a focus on the matrix operations that make up the Kalman filter. In particular, I ended up focusing on optimising the matrix mathematics (still with the Kalman filter in mind, since I performed the tests on a $12 \times 12$ matrix), in terms of the precision of the representation of the numbers, and in terms of how optimal the algorithms that I was using are. Through this process I was able to show how integer width needs only to be sufficient, whereas increasing the decimal width provides much greater, but more gradual, improvements. I was also able to show how using the correct algorithms results in a huge speed up in performance, by looking at the naive inverse and determinate, versus the LU decomposition based inverse and determinant, and also using a semi-naive inverse based on the naive inverse but the optimised LU based determinant.
 
-The pivot was motivated from unexpected difficulties in getting synthesis to succeed (although I did have success with the $4 \times 4$ case), and from complications with the model for the Kalman filter. Instead I was able to spend more time on the simulation, optimising the algorithms and precision of the input numbers.
+While I was not able to get the code working on an FPGA, I was able to get it to synthesize and be placed and routed in such a way that it would fit on the target FPGA.
 
 \printbibliography
 
