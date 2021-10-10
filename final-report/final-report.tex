@@ -123,7 +123,7 @@ An IMU is a device that provides orientation (and occasionally position) estimat
 Sequential inference \cite{morrison_2016} is the process of repeatedly adding information to a model of a system to improve our understanding of the state that system is in. In particular, we can derive
 \begin{equation}
 	\label{si}
-	P(S | D_k, m) = {P(D_k | S, m) P(S | m) \over P(D_k | m)}
+	P(S | D_k, m) = {P(D_k | S, m) P(S | m) \over P(D_k | m)}\,,
 \end{equation}
 where $S$ is the state, $D_k$ are the measurements at time step $k$, and $m$ is the model. What this equation is saying is that probability of the system being in some state, given some measurements and a model, is equal to the product of the probability of making some measurement, given the state and the model, weighted by the ratio between the probability of being in that state (given a model of the system) and the probability of making those measurements (given a model of the system). This is simply an application of Bayes' Theorem:
 \begin{equation}
@@ -141,15 +141,15 @@ The Kalman filter \cite{kalman_1960} is one of the most popular solutions for es
 
 The first two steps are to predict how the system will evolve:
 \begin{eqnarray}
-	\mathbf{\hat{x}}_{k | k-1} &=& \mathbf{F}_k \mathbf{\hat{x}}_{k-1|k-1} + \mathbf{B}_k \mathbf{u}_k \\
+	\mathbf{\hat{x}}_{k | k-1} &=& \mathbf{F}_k \mathbf{\hat{x}}_{k-1|k-1} + \mathbf{B}_k \mathbf{u}_k\\
 	\mathbf{P}_{k|k-1} &=& \mathbf{F}_k \mathbf{P}_{k-1 | k-1} \mathbf{F}^T_k + \mathbf{Q}_k
 \end{eqnarray}
 Here, $\mathbf{\hat{x}}_{k | k-1}$ and $\mathbf{P}_{k|k-1}$ are the \emph{a priori} (i.e.\@ without including any additional knowledge) estimates of the state, and the covariance of the state. Our \emph{a priori} knowledge comes only from the previous state---the $k-1|k-1$ subscripts. $\mathbf{F}_k$ is the state transition matrix, i.e.\@ it determines how the state changes through time. $\mathbf{B}_k$ is the control-input matrix applied to the control vector $\mathbf{u}_k$---these model any external input to the system, i.e.\@ if it was forced in some direction. Finally, $\mathbf{Q}_k$ is the covariance of the process noise, i.e.\@ the error / uncertainty that arises from the model. This uncertainty mainly arises from approximations made in the model (e.g.\@ linearisation), and from integration error (e.g.\@ if the measurement is velocity, then the estimate of position will drift if not corrected).
 
-The next step is the update step. It first consists of the innovation stage---determining the difference between the predicted / forecast state and the observed state
+The next step is the update step. It first consists of the innovation stage---determining the difference between the predicted / forecast state and the observed state:
 \begin{eqnarray}
 	\mathbf{\tilde{y}}_k &=& \mathbf{z}_k - \mathbf{H}_k \mathbf{\hat{x}}_{k|k-1} \\
-	\mathbf{S}_k &=& \mathbf{H}_k \mathbf{P}_{k|k-1} \mathbf{H}^T_k + \mathbf{R}_k
+	\mathbf{S}_k &=& \mathbf{H}_k \mathbf{P}_{k|k-1} \mathbf{H}^T_k + \mathbf{R}_k 
 \end{eqnarray}
 Here $\mathbf{\tilde{y}}_k$ is that difference (residual), where $\mathbf{z}_k$ is the measured state and $\mathbf{\hat{x}}_{k|k-1}$ is the \emph{a priori} estimate from before. $\mathbf{H}_k$ is the observation model, which maps the state space into the observation space---e.g.\@ when measuring depth via sonar the state space contains the depth, whereas the measured state contains the sonar round trip time. The observation model converts this (predicted) state into a (predicted) observation, in this case by dividing the distance by half the speed of sound in water. $\mathbf{S}_k$ is the residual of the covariance, where $\mathbf{R}_k$ is the covariance of the process noise, in the above example, this could arise from water currents and temperature differences slightly affecting the speed of sound in the water. It could also arise from imprecise sensors.
 
@@ -157,16 +157,14 @@ The second part of the update step is determining the Kalman gain:
 \begin{eqnarray}
 	\mathbf{K}_k = \mathbf{P}_{k|k-1} \mathbf{H}^T_k \mathbf{S}^{-1}_k
 \end{eqnarray}
+This generates a gain matrix which aims to minimise the \emph{a posteriori} (updated with the sensor observations) residual, $\mathbf{\tilde{y}}_{k|k} = \mathbf{z}_k - \mathbf{H}_k \mathbf{\hat{x}}_{k|k}$.
 
-\noindent This generates a gain matrix which aims to minimise the \emph{a posteriori} (updated with the sensor observations) residual, $\mathbf{\tilde{y}}_{k|k} = \mathbf{z}_k - \mathbf{H}_k \mathbf{\hat{x}}_{k|k}$.
-
-The final part is generating these \emph{a posteriori} estimates
+The final part is generating these \emph{a posteriori} estimates:
 \begin{eqnarray}
 	\mathbf{\hat{x}}_{k|k} &=& \mathbf{\hat{x}}_{k|k-1} + \mathbf{K}_k \mathbf{\tilde{y}}_k \\
 	\mathbf{P}_{k|k} &=& (\mathbf{I} - \mathbf{K}_k \mathbf{H}_k)\mathbf{P}_{k|k-1}
 \end{eqnarray}
-
-\noindent where $\mathbf{\hat{x}}_{k|k}$ and $\mathbf{P}_{k|k}$ are the \emph{a posteriori} state estimate and state estimate covariance.
+Here $\mathbf{\hat{x}}_{k|k}$ and $\mathbf{P}_{k|k}$ are the \emph{a posteriori} state estimate and state estimate covariance.
 
 Thus we have a mechanism to have our estimate of the state optimally track the actual state. In the above equations, the matrices (uppercase and bold) are of the size $n \times n$ and the vectors (lowercase and bold) are column vectors of the size $n \times 1$, where $n$ is the size of the estimated state. The observation space need not be the same size as the state space, thus if the size of the observation space is $m$, then $\mathbf{H}_k$ may be $m \times n$ and $\mathbf{z}_k$ may be $m \times 1$. Going forward I will assume that $n = m$ for simplicity, since if, for example, the state space is larger than the observation space, then we can simply expand the observation space matrices and vectors with zeros to bring them up to the correctly sized (square) matrices or vectors.
 
@@ -186,7 +184,7 @@ For this project, the required matrix operations are:
 
 Of these, transposition is by far the easiest since it is nothing more than shuffling some data around. The next easiest are addition and subtraction, since they just involve adding or subtracting some numbers. This requires some care when it comes to numeric overflow and optimisation, but this is not too difficult. The next easiest is scaling, which can be implemented by something as simple as a loop through all of the elements of the vector or matrix, multiplying each element by the scaling factor. Multiplication by a vector or matrix is also comparatively simple, as it is just several of dot products.
 
-The two more difficult operations are the determinant and inverse. The naive matrix determinant algorithm \cite{strang2006linear} is
+The two more difficult operations are the determinant and inverse. The naive matrix determinant algorithm \cite{strang2006linear} is:
 \begin{equation}
 	\det{\mathbf{A}} = 
 	\begin{cases}
@@ -194,13 +192,13 @@ The two more difficult operations are the determinant and inverse. The naive mat
 	\sum_{j=1}^{n} a_{1j}  (-1)^{j-1}\det{\mathbf{A}^{1j}} & \mathbf{A} \in M_{n \times n}(\mathbb{R}), n > 2\\
 	\end{cases}
 \end{equation}
-where $\mathbf{A}^{ij}$ means the matrix $\mathbf{A}$, but excluding row $i$ and column $j$. To give an estimate of complexity, a $4\times4$ matrix would require four $3\times3$ matrix determinants to be calculated, and each one of those would require three $2\times2$ matrix determinants to be calculated. Thus this is $\mathcal{O}(n!)$ (where $n$ is the amount of rows in the matrix), i.e.\@ very slow.
+Here $\mathbf{A}^{ij}$ means the matrix $\mathbf{A}$, but excluding row $i$ and column $j$. To give an estimate of complexity, a $4\times4$ matrix would require four $3\times3$ matrix determinants to be calculated, and each one of those would require three $2\times2$ matrix determinants to be calculated. Thus this is $\mathcal{O}(n!)$ (where $n$ is the amount of rows in the matrix), i.e.\@ very slow.
 
 The inverse is even more complicated:
 \begin{equation}
 	a^{-1}_{ij} = \frac{1}{\det{\mathbf{A}}} \left((-1)^{i+j} \det{\mathbf{A}^{ij}}\right)^T
 \end{equation}
-where $a^{-1}_{ij}$ is row $i$ and column $j$ of $\mathbf{A}^{-1}$. This is also $\mathcal{O}(n!)$, due to the $\frac{1}{\det{\mathbf{A}}}$ factor requiring an $n \times n$ determinant.
+Here $a^{-1}_{ij}$ is row $i$ and column $j$ of $\mathbf{A}^{-1}$. This is also $\mathcal{O}(n!)$, due to the $\frac{1}{\det{\mathbf{A}}}$ factor requiring an $n \times n$ determinant.
 
 These are sufficient for small matrices, however for this project I am targeting a $12 \times 12$ matrix (three axes for each of orientation, angular velocity, acceleration and magnetic field strength). Thus, assuming a $2\times2$ matrix takes one time step, a $12 \times 12$ would take $\frac{12!}{2!} \approx 2.4 \times 10^8$ time steps. This is obviously unacceptable if we expect a Kalman Filter based off of this to operate in real time\footnote{Or in any reasonable time at all---a typical FPGA runs with a clock frequency on the order of 100 MHz, so if a $2\times2$ operation takes only one clock cycle it would still take a whole second to perform one matrix determinant calculation.}.
 
@@ -217,7 +215,6 @@ Consider $\det(\mathbf{LU})$. We can simplify this by doing the following:
 	&= \det(\mathbf{U}) \label{lu_det_3} \\
 	&= \sum_{i=1}^{n} u_{ii} \label{lu_det_4}
 \end{align}
-
 Equations \ref{lu_det_1} and \ref{lu_det_2} are fairly straightforward, as they arise from the determinant of the product of two matrices being equal to the product of the determinants of those two matrices, and the determinant of any matrix being equal to the determinant of its transpose. Equations \ref{lu_det_3} and \ref{lu_det_4}
 arise from the determinant of an upper triangular matrix being simply the product of its diagonal entries. The reason for this is that if---when calculating the determinant the naive way---we use the left column for the multiplication factors, as opposed to the top row\footnote{The same argument applies if we do use the top row, except that it applies to \emph{lower} triangular matrices. Since we can easily transpose a lower triangular matrix to form an upper triangular matrix I will only show the result for upper triangular matrices and just transpose $\mathbf{L}$ when needed.}, then we only need to calculate one minor, since all the rest will be multiplied by zero. Thus we only have to calculate one determinant for each iteration of the recursion, and multiply it by the value on the diagonal (the top left value). When we reach the base $2\times2$ case, the bottom left value will be zero, thus the determinant will be the product of the two diagonal elements. Thus as we work back from the bottom of the recursion we only ever multiply the values on the diagonal.
 
@@ -317,25 +314,25 @@ Alternately, the HDL code could be synthesised to an application specific integr
 This section can be broken into two stages: The first is about getting a basic Kalman filter working in software, and the second is about implementing a Kalman filter in hardware.
 
 \subsection{Python Kalman Filter}
-The first phase of the project was getting a simple Kalman filter working. I will start by restating two important equations for the Kalman filter. Firstly, we have how the state is updated over time:
-$$\mathbf{x}_k = \mathbf{F}_k \mathbf{x}_{k-1} + \mathbf{B}_k \mathbf{u}_k$$
+The first phase of the project was getting a simple Kalman filter working. I will start by restating two important equations for the Kalman filter. Firstly, we have how the state is updated over time
+$$\mathbf{x}_k = \mathbf{F}_k \mathbf{x}_{k-1} + \mathbf{B}_k \mathbf{u}_k \,,$$
 where $\mathbf{x}_k$ is the state at some time step $k$, $\mathbf{F}_k$ is the state transition model which shows how the state evolves on its own, and $\mathbf{B}_k$ is the control input model which shows how the system response when perturbed by an input $\mathbf{u}_k$.
 
-The second equation shows how the measurements are predicted by the state:
-$$\mathbf{z}_k = \mathbf{H}_k \mathbf{x}_k$$
+The second equation shows how the measurements are predicted by the state
+$$\mathbf{z}_k = \mathbf{H}_k \mathbf{x}_k \,,$$
 where $\mathbf{z}_k$ are the measurements, and $\mathbf{H}_k$ is the matrix which maps state to measurements.
 
 \subsubsection{Example Situation One: Position}
 The first situation was the case of a simple one-dimensional cart moving backwards and forwards, with the measured quantity being position. In this case, the state is
-$$\mathbf{x} = \begin{bmatrix} x \\ \dot{x} \end{bmatrix}$$
+$$\mathbf{x} = \begin{bmatrix} x \\ \dot{x} \end{bmatrix} \,,$$
 where $x$ is the position. The state transition model is
-$$\mathbf{F} = \begin{bmatrix} 1 & \Delta t \\ 0 & 1 \end{bmatrix}$$
+$$\mathbf{F} = \begin{bmatrix} 1 & \Delta t \\ 0 & 1 \end{bmatrix} \,,$$
 where $\Delta t$ is the time step. This represents position increasing by velocity multiplied by the time step. The control vector is
-$$\mathbf{u}_k = \begin{bmatrix} a \\a\end{bmatrix}$$
+$$\mathbf{u}_k = \begin{bmatrix} a \\a\end{bmatrix} \,,$$
 i.e.\@ the system is being perturbed by some acceleration, $a$. In this example, the acceleration will be sinusoidal. The control input model is 
-$$\mathbf{B} = \begin{bmatrix} \frac{1}{2} {\Delta t}^2 \\ \Delta t \end{bmatrix}$$
+$$\mathbf{B} = \begin{bmatrix} \frac{1}{2} {\Delta t}^2 \\ \Delta t \end{bmatrix} \,,$$
 which just represents discrete integration of acceleration to get velocity and position. Finally, the measurement matrix is
-$$\mathbf{H} = \begin{bmatrix} 1 & 0 \end{bmatrix}$$
+$$\mathbf{H} = \begin{bmatrix} 1 & 0 \end{bmatrix} \,,$$
 i.e.\@ we are measuring position, so $\mathbf{z}_k=x$.
 
 In figure \ref{1d_position_fig} we can see the system handles both a fairly predictable motion as well as an unpredictable motion quite well. 
@@ -354,7 +351,7 @@ This is to be expected since we are measuring position, thus we expect the estim
 \subsubsection{Example Situation Two: Velocity}
 
 The next system was the same as before except the velocity was measured, and the position determined by integrating---i.e.\@ by adding the velocity multiplied by the time step to the previous position. All variables are the same as with the first situation, except that
-$$\mathbf{H} = \begin{bmatrix} 0 & 1 \end{bmatrix}$$
+$$\mathbf{H} = \begin{bmatrix} 0 & 1 \end{bmatrix} \,,$$
 and thus we are measuring velocity, so $\mathbf{z}_k=\dot{x}$.
 
 In this scenario, the velocity is sinusoidal, with a gradual linear increase over time. As we can see in figure \ref{1d_velocity_fig}, the model continues to perform well, with minimal error which appears to be bounded.
